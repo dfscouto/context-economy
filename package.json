@@ -1,0 +1,12 @@
+{
+  "name": "context-economy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Claude Code skill that cuts token/context spend on large projects via lean docs + session discipline (local tooling, zero AI tokens)",
+  "scripts": {
+    "test": "node --test tests/units.test.cjs",
+    "dashboard": "node scripts/dashboard-serve.cjs",
+    "profile": "node scripts/context-profile.cjs"
+  },
+  "license": "MIT"
+}
