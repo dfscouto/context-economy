@@ -40,11 +40,13 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
 };
 
-function refreshData() {
+function refreshData(opts) {
   const env = { ...process.env };
   const dir = resolveProjectDir();
   env.CONTEXT_ECONOMY_PROJECT = dir || ALL_PROJECTS;
-  execFileSync(process.execPath, [path.join(SCRIPTS, 'dashboard.cjs')], {
+  const args = [path.join(SCRIPTS, 'dashboard.cjs')];
+  if (opts && opts.bloatOnly) args.push('--bloat-only'); // skill toggle: skip the ~30s aggregate, regen only bloat
+  execFileSync(process.execPath, args, {
     cwd: SCRIPTS,
     stdio: 'pipe',
     env,
@@ -179,7 +181,7 @@ const server = http.createServer(async (req, res) => {
       if (!folder) throw new Error('folder required');
       if (!canToggleSkill(folder)) throw new Error('skill not found');
       const result = toggleSkill(folder, !!enable);
-      refreshData();
+      refreshData({ bloatOnly: true });
       sendJson(res, 200, { ok: true, ...result });
     } catch (e) {
       sendJson(res, 400, { ok: false, error: e.message });

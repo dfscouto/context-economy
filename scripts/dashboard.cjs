@@ -15,6 +15,19 @@ const {
 
 const OUT = path.join(skillDir(), 'dashboard', 'data.js');
 const REPORT = process.argv.includes('--report');
+const BLOAT_ONLY = process.argv.includes('--bloat-only');
+
+// Reuse the already-computed billing aggregate (days/stats) from the current data.js.
+// A skill toggle only changes the `bloat`/`project` sections — re-running the full
+// aggregate() (reads every transcript, ~30s+) just to flip an enabled flag froze the
+// dashboard server on every toggle. bloat-only patches the cheap parts and keeps the rest.
+function readExistingData() {
+  try {
+    const raw = fs.readFileSync(OUT, 'utf8');
+    const m = raw.match(/window\.USAGE_DATA\s*=\s*(\{[\s\S]*\})\s*;/);
+    return m ? JSON.parse(m[1]) : null;
+  } catch { return null; }
+}
 
 // slim version of bloat for the dashboard: ESTIMATED cost per skill (chars/4) + MCP (placeholder).
 // It's an estimate, not an exact measurement — the relative ranking is what matters for deciding.
@@ -87,7 +100,9 @@ function slimBloat(b, projectCtx, projectUsage) {
     projectUsage = await scanProjectSkillUsage(rawProject);
   }
 
-  const data = await aggregate();
+  let data = null;
+  if (BLOAT_ONLY) data = readExistingData();   // toggle/fast path: keep days+stats, regen only bloat
+  if (!data) data = await aggregate();          // full path (or fallback if data.js is missing)
   const scanDir = !isAll && fs.existsSync(rawProject) ? rawProject : process.cwd();
   try { data.bloat = slimBloat(scanBloat(scanDir), projectCtx, projectUsage); } catch { data.bloat = null; }
   data.project = {
@@ -138,5 +153,7 @@ function slimBloat(b, projectCtx, projectUsage) {
     console.log('dashboard → ' + path.join(skillDir(), 'dashboard', 'index.html'));
   }
   // fixed skills/MCP overhead at SessionStart (the "📦 …tok/session" line; came from session-init, removed in v3)
-  try { process.stdout.write(require('child_process').execSync('node ' + JSON.stringify(path.join(__dirname, 'list-bloat.cjs')) + ' --compact', { encoding: 'utf8' })); } catch {}
+  if (!BLOAT_ONLY) {
+    try { process.stdout.write(require('child_process').execSync('node ' + JSON.stringify(path.join(__dirname, 'list-bloat.cjs')) + ' --compact', { encoding: 'utf8' })); } catch {}
+  }
 })();
