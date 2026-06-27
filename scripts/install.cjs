@@ -3,7 +3,11 @@
  * context-economy v3 / install.cjs
  * Installs the 2 light SessionStart hooks and removes the heavy v2 machinery
  * (Stop/PostToolUse + session-init/handoff-append/clear-moment/track-tool).
- *   node install.cjs [--dry-run]
+ *   node install.cjs [--dry-run] [--model-advisor | --no-model-advisor]
+ *
+ * --model-advisor (opt-in) also registers the UserPromptSubmit nudge (model-advisor.cjs)
+ * that suggests `/model opus` on high-judgment prompts; pairs with a Sonnet default.
+ * --no-model-advisor removes it. Neither flag leaves the advisor untouched.
  *
  * SAFE: never overwrites an existing settings.json that has invalid JSON —
  * that would erase permissions/env/model/statusline. Makes a .bak backup and writes atomically.
@@ -72,6 +76,8 @@ function upsert(list, matcher, command) {
 
 function main() {
   const DRY = process.argv.includes('--dry-run');
+  const ADVISOR = process.argv.includes('--model-advisor');
+  const NO_ADVISOR = process.argv.includes('--no-model-advisor');
   const SD = skillDir();
   const nodeCmd = s => 'node ' + JSON.stringify(path.join(SD, 'scripts', s));
   const file = settingsPath();
@@ -95,8 +101,19 @@ function main() {
   upsert(settings.hooks.SessionStart, 'clear', usage);  // /clear -> usage summary + bloat
   upsert(settings.hooks.SessionStart, null, dashboard); // every session -> regenerates data.js
 
+  const advisor = nodeCmd('model-advisor.cjs');
+  if (ADVISOR) {
+    settings.hooks.UserPromptSubmit = settings.hooks.UserPromptSubmit || [];
+    upsert(settings.hooks.UserPromptSubmit, null, advisor); // nudge: suggest /model opus on hard prompts
+  } else if (NO_ADVISOR && settings.hooks.UserPromptSubmit) {
+    for (const b of settings.hooks.UserPromptSubmit) b.hooks = (b.hooks || []).filter(h => !/model-advisor/.test(h.command || ''));
+    settings.hooks.UserPromptSubmit = settings.hooks.UserPromptSubmit.filter(b => (b.hooks || []).length);
+    if (!settings.hooks.UserPromptSubmit.length) delete settings.hooks.UserPromptSubmit;
+  }
+
   console.log('⚙️  context-economy v3 · install' + (DRY ? ' (dry-run)' : ''));
   console.log('   light hooks: SessionStart(clear)->usage · SessionStart->dashboard');
+  console.log('   model-advisor: ' + (ADVISOR ? 'ENABLED (UserPromptSubmit nudge -> /model opus)' : NO_ADVISOR ? 'removed' : 'unchanged (add --model-advisor to enable)'));
   console.log('   removed: Stop/PostToolUse + session-init/handoff/clear-moment/track-tool');
   if (DRY) { console.log('   (dry-run: nothing written)'); return; }
 
