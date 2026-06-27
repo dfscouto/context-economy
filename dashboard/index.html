@@ -321,8 +321,7 @@ function build(D){
     'Average per day across the whole period — a weighted-token proxy for the trend, not an exact cost.', false,'dim');
 
   $('root').innerHTML = staleBanner
-    + comboPanel(days)
-    + modelPanel(D.models)
+    + comboPanel(days, D.models)
     + '<div class="grid">'+hero+c2+c3+'</div>'
     + skillCostPanel(D.bloat, D.project);
   wireSkillTips();
@@ -424,8 +423,13 @@ const MODEL_COLORS={opus:'#FF7A66',sonnet:'#0FB5A6',haiku:'#3CB371',fable:'#7C5C
 function modelTitle(n){ return ({opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable:'Fable',other:'outros'})[n] || n; }
 
 // --- the consolidated chart: stacked-by-model bars (cost/day) + an overlay line (volume or avg/turn) ---
-function comboPanel(days){
+function comboPanel(days, models){
   if(!days || !days.length) return '';
+  const fam={}; (models&&models.families||[]).forEach(f=>fam[f.name]=f);
+  const opus=fam.opus||{pct:0}, sonnet=fam.sonnet||{pct:0};
+  const decide = opus.pct>=40
+    ? '🔴 É o <b>Opus</b> ('+opus.pct+'% do teu billed) que enche teu teto <b>semanal</b>. O Sonnet hoje é só '+sonnet.pct+'% — mover o trabalho rotineiro pro Sonnet é a alavanca pra caber no Pro.'
+    : '🟢 Teu gasto não está concentrado no Opus ('+opus.pct+'%) — bom sinal pro teto semanal.';
   const W=920,H=360,Pl=66,Pr=58,Pt=18,Pb=46, iw=W-Pl-Pr, ih=H-Pt-Pb;
   const n=days.length, slot=iw/n, bw=Math.max(2,Math.min(slot*0.66,46));
   const lineVal = d => d.msgs ? d.billed/d.msgs : 0; // avg/turn — the dimension the bars don't already echo
@@ -457,15 +461,22 @@ function comboPanel(days){
     +'</div>';
   const meta=JSON.stringify({n,slot,pl:Pl,pt:Pt,iw,ih});
   const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,opus:d.opus||0,avg:lineVal(d)})));
+  const head = (models&&models.families&&models.families.length)
+    ? '<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opus.pct>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 8px">Opus '+opus.pct+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do teu billed — o que enche teu teto semanal</span></div>'
+      +'<div class="estnote" style="margin:0 0 12px">'+decide+'</div>'
+    : '';
   return '<div class="panel chart-panel" id="spend-chart" data-chart="'+escAttr(meta)+'" data-days="'+escAttr(dd)+'">'
-    +'<div class="cap">custo/dia por modelo (barras) + custo por turno (linha azul) · onde está o Opus e quão caro cada turno</div>'
+    +'<div class="cap">consumo por modelo — onde decidir Opus × Sonnet (teu gargalo é o teto semanal, não a janela de 5h)</div>'
+    + head
     +'<svg viewBox="0 0 '+W+' '+H+'" width="100%">'
     + ticks + rticks + bars
     +'<path d="'+path+'" fill="none" stroke="#378ADD" stroke-width="2"/>'
     +'<rect class="chart-plot-hit" x="'+Pl+'" y="'+Pt+'" width="'+iw+'" height="'+ih+'" fill="transparent"/>'
     +'<line class="chart-cross" x1="'+Pl+'" y1="'+Pt+'" x2="'+Pl+'" y2="'+(Pt+ih)+'" opacity="0"/>'
     + xl
-    +'</svg>'+legend+'</div>';
+    +'</svg>'+legend
+    +'<div class="estnote" style="margin-top:8px;color:var(--dim)">O <b>%-de-plano real</b> (sessão 5h + semanal) vive em <b>Settings → Usage</b> no claude.ai — aqui é <b>intensidade por modelo</b> (billed, inclui cache). O reset semanal exato varia por conta.</div>'
+    +'</div>';
 }
 function wireCombo(){
   const wrap=document.getElementById('spend-chart'); if(!wrap) return;
@@ -491,19 +502,6 @@ function wireCombo(){
     tip.style.left=Math.max(8,left)+'px'; tip.style.top=Math.max(8,top)+'px';
   });
   hit.addEventListener('mouseleave', hide);
-}
-function modelPanel(models){
-  if(!models || !models.families || !models.families.length) return '';
-  const fam={}; models.families.forEach(f=>fam[f.name]=f);
-  const opus=fam.opus||{pct:0,billed:0}, sonnet=fam.sonnet||{pct:0,billed:0};
-  const decide = opus.pct>=40
-    ? '🔴 É o <b>Opus</b> ('+opus.pct+'% do teu billed) que enche teu teto <b>semanal</b>. O Sonnet hoje é só '+sonnet.pct+'% — mover o trabalho rotineiro pro Sonnet é a alavanca pra caber no Pro.'
-    : '🟢 Teu gasto não está concentrado no Opus ('+opus.pct+'%) — bom sinal pro teto semanal.';
-  return '<div class="panel"><div class="cap">decisão de modelo — teu gargalo é o teto semanal de todos os modelos</div>'
-    +'<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opus.pct>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 10px">Opus '+opus.pct+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do teu billed</span></div>'
-    +'<div class="estnote" style="margin-top:0">'+decide+'</div>'
-    +'<div class="estnote" style="margin-top:6px;color:var(--dim)">O <b>%-de-plano real</b> (sessão 5h + semanal) vive em <b>Settings → Usage</b> no claude.ai — aqui é <b>intensidade por modelo</b> (billed, inclui cache). O reset semanal exato varia por conta.</div>'
-    +'</div>';
 }
 
 function wireSkillTips(){
