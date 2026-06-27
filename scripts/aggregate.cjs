@@ -9,7 +9,27 @@ const { listJsonlFiles, isTopLevelSessionFile } = require('./lib/log-scan.cjs');
 const SKILL_DATE = skillDate();
 const WIN_MS = 5 * 60 * 60 * 1000; // 5-hour window — the real unit of the plan's rolling limit
 
-async function ingestFile(full, fb, proj, byDay, byWindow = {}) {
+function modelFamily(m) {
+  m = String(m || '').toLowerCase();
+  if (m.includes('opus')) return 'opus';
+  if (m.includes('sonnet')) return 'sonnet';
+  if (m.includes('haiku')) return 'haiku';
+  if (m.includes('fable')) return 'fable';
+  return 'other';
+}
+function weekStart(dateStr) {
+  // Monday of the ISO week containing the local date (YYYY-MM-DD)
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  const dow = dt.getUTCDay();
+  dt.setUTCDate(dt.getUTCDate() + (dow === 0 ? -6 : 1 - dow));
+  return dt.toISOString().slice(0, 10);
+}
+
+async function ingestFile(full, fb, proj, byDay, agg = {}) {
+  const byWindow = agg.windows || (agg.windows = {});
+  const byModel = agg.models || (agg.models = {});
+  const byWeekModel = agg.weekModels || (agg.weekModels = {});
   const rl = readline.createInterface({ input: fs.createReadStream(full), crlfDelay: Infinity });
   const s = { msgs: 0, billed: 0, startup: 0 };
 
@@ -36,6 +56,13 @@ async function ingestFile(full, fb, proj, byDay, byWindow = {}) {
       const w = byWindow[bucket] || (byWindow[bucket] = { billed: 0, msgs: 0 });
       w.billed += b; w.msgs++;
     }
+    // split by model family (the real driver of the weekly cap) + by ISO week
+    const fam = modelFamily((o.message && o.message.model) || o.model);
+    const fm = byModel[fam] || (byModel[fam] = { billed: 0, msgs: 0 });
+    fm.billed += b; fm.msgs++;
+    const wk = weekStart(date);
+    const wr = byWeekModel[wk] || (byWeekModel[wk] = { opus: 0, sonnet: 0, haiku: 0, fable: 0, other: 0, msgs: 0 });
+    wr[fam] += b; wr.msgs++;
     s.msgs++;
     s.billed += b;
     if (s.msgs <= 50) s.startup += b;
@@ -55,7 +82,7 @@ async function aggregate() {
   } catch {}
 
   const byDay = {};
-  const byWindow = {};
+  const agg = { windows: {}, models: {}, weekModels: {} };
   const sessions = [];
   const byProject = {};
 
@@ -67,7 +94,7 @@ async function aggregate() {
       let fb;
       try { fb = localDateKey(fs.statSync(full).mtimeMs) || SKILL_DATE; } catch { fb = SKILL_DATE; }
 
-      const s = await ingestFile(full, fb, proj, byDay, byWindow);
+      const s = await ingestFile(full, fb, proj, byDay, agg);
       if (s.msgs && isTopLevelSessionFile(dir, full)) {
         sessions.push({ ...s, project: name });
         proj.sessions++;
@@ -121,6 +148,7 @@ async function aggregate() {
     topProjects,
   };
 
+  const byWindow = agg.windows;
   const winArr = Object.keys(byWindow)
     .map(key => ({ start: Number(key), billed: Math.round(byWindow[key].billed), msgs: byWindow[key].msgs }))
     .sort((a, b) => a.start - b.start);
@@ -134,6 +162,22 @@ async function aggregate() {
     top: [...winArr].sort((a, b) => b.billed - a.billed).slice(0, 6),
   };
 
+  const byModel = agg.models;
+  const modelTotal = Object.keys(byModel).reduce((a, k) => a + byModel[k].billed, 0) || 1;
+  const models = {
+    total: Math.round(modelTotal),
+    families: Object.keys(byModel)
+      .map(name => ({ name, billed: Math.round(byModel[name].billed), msgs: byModel[name].msgs, pct: Math.round(100 * byModel[name].billed / modelTotal) }))
+      .sort((a, b) => b.billed - a.billed),
+  };
+
+  const byWeekModel = agg.weekModels;
+  const weeks = Object.keys(byWeekModel).sort().map(w => {
+    const r = byWeekModel[w];
+    const total = r.opus + r.sonnet + r.haiku + r.fable + r.other;
+    return { week: w, opus: Math.round(r.opus), sonnet: Math.round(r.sonnet), haiku: Math.round(r.haiku), fable: Math.round(r.fable), other: Math.round(r.other), total: Math.round(total), msgs: r.msgs };
+  });
+
   return {
     generatedAt: new Date().toISOString(),
     skillDate: SKILL_DATE,
@@ -142,6 +186,8 @@ async function aggregate() {
     days,
     stats,
     windows,
+    models,
+    weeks,
   };
 }
 
