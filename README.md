@@ -1,95 +1,124 @@
 # context-economy
 
 > A Claude Code skill that cuts token and context spend on large or long-running projects. It keeps the
-> project's durable truth in lean docs instead of the chat, and trims the static overhead of installed skills
-> and MCP servers that pads every session. All tooling runs locally, so it costs zero AI tokens.
+> project's durable truth in lean docs instead of the chat, trims the static overhead of installed skills
+> and MCP servers that pads every session, and helps you make smarter model choices. All tooling runs
+> locally — zero AI tokens spent.
+
+## What it does
+
+- **Audits your project** — builds or tightens a boot-loader `CLAUDE.md` plus a handoff doc so the next
+  session costs less to resume.
+- **Measures where your tokens actually go** — history vs. real work, per-session skill/MCP overhead,
+  and a breakdown of what's inside your conversations (images, PDFs, file reads, web fetches, subagents).
+- **Dashboard** — a local chart showing daily spend stacked by model (Opus / Sonnet / Haiku), an
+  efficiency overlay (avg tokens per turn), and a one-line model decision (e.g. "Opus 96% of spend —
+  shift routine prompts to Sonnet"). Auto-detects your plan (Pro / Max 5× / Max 20×).
+- **Skill & MCP on/off** — ranked list of installed skills and MCP servers by static per-session cost;
+  toggle them on/off from the dashboard or CLI without touching settings by hand.
+- **Model-advisor nudge (opt-in)** — a zero-cost local hook that detects high-judgment prompts
+  (architecture, debugging, planning) and suggests `/model opus` before you send. Runs as regex in
+  Node.js — no AI tokens consumed in detection.
+- **Honest framing** — the dashboard shows your own logs; the official plan % lives in
+  **claude.ai → Settings → Usage**.
 
 ## Use it in chat
-Say `/context-economy` (or "run context economy on this project", "how do I cut token spend here"). The agent audits
-the project, builds or tightens a boot-loader `CLAUDE.md` plus a handoff doc, shows you where your tokens go
-(history vs work) and what your installed skills and MCP cost per session, and tells you when to `/clear`.
+
+Say `/context-economy` (or "run context economy on this project", "how do I cut token spend here"). The
+skill audits the project, builds or tightens the `CLAUDE.md` + handoff, shows where your tokens go, and
+tells you when to `/clear`.
 
 ## Install (once per machine)
+
 1. Copy the `context-economy` folder into `~/.claude/skills/`.
-2. Install the two light hooks:
+2. Install the hooks:
    ```bash
    node ~/.claude/skills/context-economy/scripts/install.cjs
    ```
-   (On Windows use the absolute path: `node "C:\Users\<you>\.claude\skills\context-economy\scripts\install.cjs"`.)
+   On Windows: `node "C:\Users\<you>\.claude\skills\context-economy\scripts\install.cjs"`
 3. Restart Claude Code.
 
-This wires two `SessionStart` hooks that print to the terminal: a usage breakdown on `/clear`, and a
-`📦 …tok/session` overhead line on each start.
+This wires two `SessionStart` hooks: a usage breakdown on `/clear`, and a `📦 …tok/session` overhead
+line on each start.
 
-## What it does to your machine (transparency)
-- It edits your global `~/.claude/settings.json` to add the two SessionStart hooks (and removes its own older,
-  heavier hooks). Run `install.cjs --dry-run` to see the change without writing. With `--model-advisor` it also
-  adds one `UserPromptSubmit` hook (the opt-in nudge); it **never** changes your default model — that stays your choice.
-- It reads, locally: your Claude Code session logs (`~/.claude/projects/**/*.jsonl`), `~/.claude.json` (your
-  skill and MCP inventory), and the project you point it at.
-- It writes, locally: `dashboard/data.js` (your usage, gitignored) and, when you ask, a `CLAUDE.md` or handoff
-  in the project.
-- It sends nothing anywhere. It makes no network calls and collects no telemetry. Everything stays on your machine.
-
-## The discipline (what actually saves tokens)
-One session, one task: update the handoff, commit, then `/clear`. Switching topics? `/clear` first. For heavy
-reads, delegate to a subagent. Turn off skills and MCP you don't use (`list-bloat` shows the cost). The skill
-sets up the terrain; the saving comes from the habit.
-
-## Model choice — Sonnet by default, Opus on demand (the biggest lever)
-When Opus dominates your spend, the heaviest cut isn't `/clear` — it's the model. The plan's weekly cap is
-usually Opus, so:
-- Set a Sonnet default: `"model": "claude-sonnet-4-6"` in `~/.claude/settings.json`.
-- Escalate per session with `/model opus` only for high-judgment work (architecture, hard debugging, planning).
-- The dashboard's **per-model chart** shows where Opus actually goes. The real plan % lives in
-  **claude.ai → Settings → Usage** — this dashboard shows intensity by model, not the official %.
-
-Optional nudge (opt-in): a `UserPromptSubmit` hook that suggests `/model opus` on hard prompts — it never
-switches the model and never blocks.
+**Optional — model-advisor nudge:**
 ```bash
 node ~/.claude/skills/context-economy/scripts/install.cjs --model-advisor   # enable
-# CE_MODEL_ADVISOR=off  to silence  ·  install.cjs --no-model-advisor  to remove
+# CE_MODEL_ADVISOR=off  to silence for one session
+# install.cjs --no-model-advisor  to remove
 ```
 
-## Dashboard (open it, this is where the decisions are)
-After installing, open **`dashboard/index.html`** in a browser (local file, F5 to refresh). Built from your own
-logs, it shows a single **combined chart** — cost/day **stacked by model** (Opus vs Sonnet) with an **overlay
-line** showing **avg/turn** (cost per turn — the efficiency the bars don't already show) — plus a one-line
-**model decision** (Opus % + what to shift to Sonnet), the detected plan, and **which installed skills cost the
-most per session** (estimated, ranked).
+## Dashboard
 
-**The Enable/Disable skill buttons need the local server** (they move folders via an API). Opening
-`index.html` as a plain file leaves them dead — you'll see *"Servidor offline"*. The easy way:
+**Windows:** double-click **`dashboard.cmd`** in the skill folder. It starts the local server and opens
+your browser automatically at `http://127.0.0.1:3847`. Keep the window open while you use the dashboard.
 
-- **Windows:** double-click **`dashboard.cmd`** in the skill folder. It starts the server and opens the
-  dashboard in your browser at `http://127.0.0.1:3847` — the mode where the buttons work. Keep the window open.
-- **Any OS:** `node ~/.claude/skills/context-economy/scripts/dashboard-serve.cjs` (it now opens the browser for
-  you; add `--no-open` to suppress). Then use `http://127.0.0.1:3847/`, not the `file://` page.
+**Any OS:**
+```bash
+node ~/.claude/skills/context-economy/scripts/dashboard-serve.cjs
+# then open http://127.0.0.1:3847/
+```
 
-Each skill has an Enable/Disable button (moves the folder to `~/.claude/skills.disabled/`). Restart Claude Code
-after toggling. CLI equivalent: `node scripts/toggle-skill.cjs off <skill>`.
+The dashboard shows:
+- **Cost/day stacked by model** — see how much of your weekly cap is Opus vs Sonnet vs Haiku
+- **Avg tokens/turn overlay** — efficiency dimension the bar chart doesn't already show
+- **Model decision headline** — "Opus N% of spend — the bottleneck" (in coral when ≥ 40%)
+- **Skill bloat table** — per-session static overhead of each installed skill and MCP, with Enable/Disable
+  buttons (moves the folder to `~/.claude/skills.disabled/`; restart Claude Code after toggling)
+- **Detected plan badge** — Pro / Max 5× / Max 20× (read from local credentials, never sent anywhere)
 
-Terminal-only report: `node scripts/dashboard.cjs --report`. Paste-ready disable commands: `list-bloat.cjs --off`.
-Per-skill costs are estimates (chars÷4), good for ranking, not exact numbers.
+> Opening `index.html` directly as a `file://` page disables the Enable/Disable buttons — use the server.
+
+Terminal-only report: `node scripts/dashboard.cjs --report`  
+CLI toggle: `node scripts/toggle-skill.cjs off <skill-folder>`  
+Paste-ready disable commands: `node scripts/list-bloat.cjs --off`
+
+## Model choice — the biggest lever
+
+Opus typically accounts for 90–97% of billed tokens. The plan's weekly cap is almost always Opus. The
+cheapest habit change:
+
+- Set Sonnet as default: add `"model": "claude-sonnet-4-6"` to `~/.claude/settings.json`.
+- Escalate per session with `/model opus` only for high-judgment work.
+- Use the model-advisor hook to get a nudge before you forget.
+
+## The discipline (what actually saves tokens)
+
+One session, one task: update the handoff, commit, then `/clear`. Switching topics? `/clear` first. For
+heavy reads, delegate to a subagent. Turn off skills and MCP you don't use. The skill sets up the
+terrain; the saving comes from the habit.
+
+## What it touches on your machine (transparency)
+
+- **Reads:** `~/.claude/projects/**/*.jsonl` (your session logs), `~/.claude.json` (skill/MCP list),
+  `~/.claude/.credentials.json` (plan tier only — never the OAuth tokens).
+- **Writes:** `dashboard/data.js` (your usage data, local only — ships as an empty placeholder in this
+  repo and is regenerated by the server each run), and optionally a `CLAUDE.md` / handoff in your project.
+- **Edits:** `~/.claude/settings.json` to add/remove hooks. Run `install.cjs --dry-run` to preview.
+- **Sends nothing.** No network calls, no telemetry. Everything stays on your machine.
 
 ## Scripts
-- `scripts/precheck.cjs`: safety and scope check before writing (is it the right moment?).
-- `scripts/usage.cjs`: history-vs-work breakdown (the `/clear` hook).
-- `scripts/dashboard.cjs` + `dashboard/index.html`: daily dashboard (file-mode, F5).
-- `scripts/dashboard-serve.cjs`: same dashboard + skill toggle API (`http://127.0.0.1:3847/`); opens your browser on start.
-- `dashboard.cmd`: Windows double-click launcher for the server (so the skill on/off buttons work).
-- `scripts/toggle-skill.cjs`: CLI on/off for skills.
-- `scripts/list-bloat.cjs`: static per-session overhead of installed skills and MCP.
-- `scripts/context-profile.cjs`: where your conversation tokens actually go (images / PDFs / logs / file reads / web) and your biggest controllable leak. Also auto-summarized in one line on `/clear`.
-- `scripts/model-advisor.cjs`: optional `UserPromptSubmit` nudge → suggests `/model opus` on hard prompts (opt-in).
-- `scripts/install.cjs`: installs the two SessionStart hooks (`--model-advisor` adds the opt-in nudge).
+
+| Script | Purpose |
+|---|---|
+| `install.cjs` | Installs SessionStart hooks; `--model-advisor` adds the prompt nudge |
+| `dashboard-serve.cjs` | Local server + skill toggle API at `http://127.0.0.1:3847/` |
+| `dashboard.cmd` | Windows double-click launcher (starts server + opens browser) |
+| `dashboard.cjs` | Generates `dashboard/data.js` from your logs |
+| `usage.cjs` | History-vs-work breakdown (runs on `/clear`) |
+| `list-bloat.cjs` | Ranks installed skills/MCP by static per-session token cost |
+| `context-profile.cjs` | Breaks down what's inside your conversations (images, PDFs, etc.) |
+| `toggle-skill.cjs` | CLI on/off for skills |
+| `model-advisor.cjs` | UserPromptSubmit hook — detects high-judgment prompts, suggests Opus |
+| `precheck.cjs` | Safety check before writing to a project |
 
 ## Notes
-- Tested on Windows. The scripts are plain Node (`.cjs`) with relative paths, so they should work on macOS and
+
+- Tested on Windows. Scripts are plain Node (`.cjs`) with no dependencies — should work on macOS and
   Linux too, but that's untested.
-- The "when to `/clear`" reminder is relayed by the agent in chat, because Claude Code doesn't always surface
-  Stop-hook output. The agent tells you "🟢 time to `/clear`" when you close a delivery.
-- Tests: `npm test` (Node's built-in runner, no dependencies).
+- `npm test` runs the built-in Node test runner (no extra packages needed).
+- Per-skill token costs are estimates (chars ÷ 4) — good for ranking, not exact billing.
 
 ## License
+
 MIT. Yours to use, fork, and share.
