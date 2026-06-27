@@ -30,6 +30,7 @@ async function ingestFile(full, fb, proj, byDay, agg = {}) {
   const byWindow = agg.windows || (agg.windows = {});
   const byModel = agg.models || (agg.models = {});
   const byWeekModel = agg.weekModels || (agg.weekModels = {});
+  const byDayModel = agg.dayModels || (agg.dayModels = {});
   const rl = readline.createInterface({ input: fs.createReadStream(full), crlfDelay: Infinity });
   const s = { msgs: 0, billed: 0, startup: 0 };
 
@@ -63,6 +64,8 @@ async function ingestFile(full, fb, proj, byDay, agg = {}) {
     const wk = weekStart(date);
     const wr = byWeekModel[wk] || (byWeekModel[wk] = { opus: 0, sonnet: 0, haiku: 0, fable: 0, other: 0, msgs: 0 });
     wr[fam] += b; wr.msgs++;
+    const dr = byDayModel[date] || (byDayModel[date] = { opus: 0, sonnet: 0, haiku: 0, fable: 0, other: 0, msgs: 0 });
+    dr[fam] += b; dr.msgs++;
     s.msgs++;
     s.billed += b;
     if (s.msgs <= 50) s.startup += b;
@@ -82,7 +85,7 @@ async function aggregate() {
   } catch {}
 
   const byDay = {};
-  const agg = { windows: {}, models: {}, weekModels: {} };
+  const agg = { windows: {}, models: {}, weekModels: {}, dayModels: {} };
   const sessions = [];
   const byProject = {};
 
@@ -102,14 +105,21 @@ async function aggregate() {
     }
   }
 
+  const byDayModel = agg.dayModels;
   const days = Object.keys(byDay).sort().map(date => {
     const d = byDay[date];
+    const m = byDayModel[date] || { opus: 0, sonnet: 0, haiku: 0, fable: 0, other: 0 };
     return {
       date,
       billed: Math.round(billedOf(d)),
       cache: Math.round(d.cr * 0.1 + d.cw * 1.25),
       work: d.in + d.out,
       msgs: d.msgs,
+      opus: Math.round(m.opus),
+      sonnet: Math.round(m.sonnet),
+      haiku: Math.round(m.haiku),
+      fable: Math.round(m.fable),
+      other: Math.round(m.other),
     };
   });
 
