@@ -29,6 +29,27 @@ function skillDate() {
   return process.env.CONTEXT_ECONOMY_START || localDateKey(Date.now());
 }
 
+function readPlan() {
+  // Reads ONLY the plan tier from the OAuth credentials — never the tokens.
+  try {
+    const o = (JSON.parse(fs.readFileSync(path.join(claudeDir(), '.credentials.json'), 'utf8')) || {}).claudeAiOauth || {};
+    const type = o.subscriptionType ? String(o.subscriptionType).toLowerCase() : null; // 'pro' | 'max'
+    const tier = o.rateLimitTier ? String(o.rateLimitTier).toLowerCase() : null;        // e.g. 'default_claude_max_5x'
+    let label = null;
+    if (tier) {
+      if (/max.*20/.test(tier)) label = 'Max 20×';
+      else if (/max.*5/.test(tier)) label = 'Max 5×';
+      else if (/pro/.test(tier)) label = 'Pro';
+      else label = tier;
+    } else if (type) {
+      label = type === 'max' ? 'Max' : type === 'pro' ? 'Pro' : type;
+    }
+    return { type, tier, label, detected: !!(type || tier) };
+  } catch {
+    return { type: null, tier: null, label: null, detected: false };
+  }
+}
+
 function recentProjects(limit = 5) {
   const root = projectsRoot();
   try {
@@ -75,6 +96,7 @@ module.exports = {
   encodeCwd,
   projectsRoot,
   skillDate,
+  readPlan,
   recentProjects,
   decodeProjectDir,
   resolveLogDir,

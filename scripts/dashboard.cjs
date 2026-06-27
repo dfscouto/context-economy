@@ -5,7 +5,7 @@ const { aggregate } = require('./aggregate.cjs');
 const { scanBloat, matchUsage, readClaudeJson } = require('./lib/bloat-scan.cjs');
 const { listDisabledSkillMeta } = require('./lib/skill-toggle.cjs');
 const { k } = require('./lib/billing.cjs');
-const { skillDir } = require('./lib/paths.cjs');
+const { skillDir, readPlan } = require('./lib/paths.cjs');
 const {
   listProjectOptions,
   buildProjectContext,
@@ -114,6 +114,7 @@ function slimBloat(b, projectCtx, projectUsage) {
     logDir: projectUsage.logDir,
     options: listProjectOptions(12),
   };
+  try { data.plan = readPlan(); } catch { data.plan = null; }
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, 'window.USAGE_DATA = ' + JSON.stringify(data) + ';\n');
 

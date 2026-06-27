@@ -303,7 +303,8 @@ function build(D){
   const s=D.stats||{}, days=D.days;
   $('meta').innerHTML = 'dashboard <b>v'+DASHBOARD_BUILD+'</b>'
     + (apiVersion ? ' · server <b>v'+escHtml(apiVersion)+'</b>' : '')
-    + ' · data <b>'+new Date(D.generatedAt).toLocaleString('en-US')+'</b> · <b>'+days.length+'</b> '+(days.length===1?'day':'days')+' · <b>'+(s.sessions||'?')+'</b> '+(s.sessions===1?'session':'sessions');
+    + ' · data <b>'+new Date(D.generatedAt).toLocaleString('en-US')+'</b> · <b>'+days.length+'</b> '+(days.length===1?'day':'days')+' · <b>'+(s.sessions||'?')+'</b> '+(s.sessions===1?'session':'sessions')
+    + planChip(D.plan);
   const staleBanner = apiStale
     ? '<div class="stalebanner">⚠️ <b>Outdated server</b> on port 3847'
       + (apiVersion ? ' (running v'+escHtml(apiVersion)+', dashboard needs v'+DASHBOARD_BUILD+')' : ' (no new APIs)')
@@ -323,6 +324,7 @@ function build(D){
 
   $('root').innerHTML = staleBanner
     + chartTabs(days,s,D.skillDate)
+    + windowPanel(D.windows, D.plan)
     + '<div class="grid">'+hero+c2+c3+'</div>'
     + skillCostPanel(D.bloat, D.project);
   wireSkillTips();
@@ -556,6 +558,40 @@ function wireChartView(){
       if(v && v!==chartView){ chartView=v; build(window.USAGE_DATA); }
     });
   });
+}
+
+// --- detected plan + 5h-window usage (the real unit of the rolling limit) ---
+function planChip(plan){
+  if(!plan || !plan.detected) return '';
+  return ' · plano <b>'+escHtml(plan.label||plan.type||'?')+'</b>';
+}
+function fmtWindow(ms, hours){
+  const d=new Date(ms), p=n=>String(n).padStart(2,'0'), h=d.getHours();
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(h)+'h–'+p((h+hours)%24)+'h';
+}
+function windowPanel(W, plan){
+  if(!W || !W.count || !W.peak) return '';
+  const hrs=W.bucketHours||5, peak=W.peak;
+  const planLabel = plan && plan.detected ? escHtml(plan.label||plan.type) : 'não detectado';
+  const rows=(W.top||[]).slice(0,5).map((w,i)=>
+    '<div style="display:grid;grid-template-columns:104px 1fr 66px;gap:10px;align-items:center;margin:5px 0">'
+    +'<span style="font-family:var(--mono);font-size:11.5px;color:var(--ink)">'+fmtWindow(w.start,hrs)+'</span>'
+    +'<span style="height:8px;background:#f0ede3;border-radius:99px;overflow:hidden;display:block"><i style="display:block;height:100%;width:'+Math.round(100*w.billed/(peak.billed||1))+'%;background:'+(i===0?'var(--amber)':'var(--dim)')+';border-radius:99px"></i></span>'
+    +'<span style="font-family:var(--mono);font-size:11.5px;text-align:right;font-weight:'+(i===0?'700':'400')+';color:'+(i===0?'var(--amber)':'var(--dim)')+'">'+fmt(w.billed)+'</span>'
+    +'</div>').join('');
+  return '<div class="panel"><div class="cap">janelas de 5h — a unidade real do teto do teu plano</div>'
+    +'<div style="display:flex;gap:26px;flex-wrap:wrap;align-items:baseline;margin:6px 0 14px">'
+      +'<div><div style="font-family:var(--fd);font-size:34px;font-weight:700;color:var(--amber);line-height:1">'+fmt(peak.billed)+'</div>'
+        +'<div style="font-size:11.5px;color:var(--dim);margin-top:3px">pico numa janela de 5h · '+fmtWindow(peak.start,hrs)+' · '+peak.msgs+' msgs</div></div>'
+      +'<div><div style="font-family:var(--fd);font-size:21px;font-weight:700;color:var(--teal-deep);line-height:1">'+fmt(W.p50)+' / '+fmt(W.p90)+'</div>'
+        +'<div style="font-size:11.5px;color:var(--dim);margin-top:3px">típico (p50) / pesado (p90) por janela</div></div>'
+      +'<div><div style="font-family:var(--fd);font-size:21px;font-weight:700;color:var(--ink);line-height:1">'+planLabel+'</div>'
+        +'<div style="font-size:11.5px;color:var(--dim);margin-top:3px">plano detectado (automático)</div></div>'
+    +'</div>'
+    +'<div class="cap" style="letter-spacing:.1em">janelas mais pesadas</div>'
+    + rows
+    +'<div class="estnote" style="margin-top:11px">O teto exato do plano <b>não é público</b> e não fica em lugar nenhum local. Para isto virar "% até 100%", capture <b>uma vez</b> o aviso real <code>resets in Xh</code> — o consumo daquela janela vira o teu teto calibrado.</div>'
+    +'</div>';
 }
 
 function wireSkillTips(){
