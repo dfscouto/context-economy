@@ -78,6 +78,7 @@ The dashboard's **~97% "cache cost"** is normal in long sessions — **do not ch
 ### What to measure (2-minute ritual, zero AI)
 | Metric | Where | Healthy direction |
 |---|---|---|
+| **Opus share** | dashboard model panel | ↓ Opus % (move routine to Sonnet) |
 | **Spend/day** | dashboard graph | ↓ over weeks |
 | **Marathon vs short CPM** | hero card (`ratio` ~3×) | fewer 1000+ msg sessions |
 | **Skills/MCP overhead** | bloat panel (`tok/session`) | ↓ after archiving 0× skills |
@@ -87,9 +88,14 @@ Weekly (or when limits bite): `node <skill-dir>/scripts/dashboard.cjs` → refre
 `list-bloat.cjs` · offer `--off` for 0× skills once.
 
 ### P0 — user levers (biggest $/token wins)
-1. **`/clear` on topic switch** — after commit + fresh handoff (gate below). Stops unbounded history growth.
-2. **Archive unused skills** — `list-bloat.cjs` / dashboard toggle. Static cost hits **every** session start.
-3. **Trim MCP** — disable connectors you don't use (`/mcp` or settings); same static padding as skills.
+1. **Model choice — Sonnet by default, Opus on demand** — the heaviest lever when Opus dominates billed (the
+   weekly cap is usually Opus). Set `"model": "claude-sonnet-4-6"` in `settings.json`; `/model opus` only for
+   high-judgment work (architecture, hard debugging, planning). The dashboard's **per-model weekly view** shows
+   where Opus goes; the real plan % is at **claude.ai → Settings → Usage**. Optional nudge:
+   `install.cjs --model-advisor` suggests escalating on hard prompts (never switches the model; `CE_MODEL_ADVISOR=off` to silence).
+2. **`/clear` on topic switch** — after commit + fresh handoff (gate below). Stops unbounded history growth.
+3. **Archive unused skills** — `list-bloat.cjs` / dashboard toggle. Static cost hits **every** session start.
+4. **Trim MCP** — disable connectors you don't use (`/mcp` or settings); same static padding as skills.
 
 ### P1 — agent levers (you must do these every session)
 1. **Boot, don't binge-read** — CLAUDE.md + handoff only at start; never re-ingest the whole repo unless asked.
@@ -234,8 +240,11 @@ decide. Said it once and they declined or acted? Drop it — don't nag.
   HTML in a browser, F5. **Skill toggle:** run `dashboard-serve.cjs` and open `http://127.0.0.1:3847/` — Enable/
   Disable buttons move folders; restart Claude Code afterward. Also prints `📦 …tok/session` on SessionStart.
 - `list-bloat.cjs` — skills/MCP overhead.
+- `model-advisor.cjs` — optional `UserPromptSubmit` nudge: on high-judgment prompts it suggests `/model opus`
+  (never switches the model, never blocks; `CE_MODEL_ADVISOR=off` to silence).
 - **Hooks** (global `settings.json`): `SessionStart(clear)→usage` and `SessionStart→dashboard`. Install once with
-  `node <skill-dir>/scripts/install.cjs` (it also cleans up old heavier hooks).
+  `node <skill-dir>/scripts/install.cjs` (it also cleans up old heavier hooks). Add `--model-advisor` to also
+  wire the opt-in escalation nudge.
 
 ## Scripts (lean set)
 | script | what it does |
@@ -247,7 +256,8 @@ decide. Said it once and they declined or acted? Drop it — don't nag.
 | `scripts/toggle-skill.cjs` | CLI on/off skill (`skills` ↔ `skills.disabled`) |
 | `scripts/list-bloat.cjs` | static overhead of installed skills + MCP |
 | `scripts/context-profile.cjs` | per-profile breakdown of where conversation tokens go (images/PDF/logs/reads/web) + targeted fix |
-| `scripts/install.cjs` | installs the 2 light SessionStart hooks |
+| `scripts/model-advisor.cjs` | optional UserPromptSubmit nudge → suggests `/model opus` on hard prompts (opt-in) |
+| `scripts/install.cjs` | installs the 2 light SessionStart hooks (`--model-advisor` adds the opt-in nudge) |
 
 ## What NOT to do
 - Don't run heavy benchmarks to "prove" savings — that burns the tokens the skill exists to save.

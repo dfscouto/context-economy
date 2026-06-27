@@ -23,7 +23,8 @@ This wires two `SessionStart` hooks that print to the terminal: a usage breakdow
 
 ## What it does to your machine (transparency)
 - It edits your global `~/.claude/settings.json` to add the two SessionStart hooks (and removes its own older,
-  heavier hooks). Run `install.cjs --dry-run` to see the change without writing.
+  heavier hooks). Run `install.cjs --dry-run` to see the change without writing. With `--model-advisor` it also
+  adds one `UserPromptSubmit` hook (the opt-in nudge); it **never** changes your default model — that stays your choice.
 - It reads, locally: your Claude Code session logs (`~/.claude/projects/**/*.jsonl`), `~/.claude.json` (your
   skill and MCP inventory), and the project you point it at.
 - It writes, locally: `dashboard/data.js` (your usage, gitignored) and, when you ask, a `CLAUDE.md` or handoff
@@ -35,10 +36,25 @@ One session, one task: update the handoff, commit, then `/clear`. Switching topi
 reads, delegate to a subagent. Turn off skills and MCP you don't use (`list-bloat` shows the cost). The skill
 sets up the terrain; the saving comes from the habit.
 
+## Model choice — Sonnet by default, Opus on demand (the biggest lever)
+When Opus dominates your spend, the heaviest cut isn't `/clear` — it's the model. The plan's weekly cap is
+usually Opus, so:
+- Set a Sonnet default: `"model": "claude-sonnet-4-6"` in `~/.claude/settings.json`.
+- Escalate per session with `/model opus` only for high-judgment work (architecture, hard debugging, planning).
+- The dashboard's **per-model weekly view** shows where Opus actually goes. The real plan % lives in
+  **claude.ai → Settings → Usage** — this dashboard shows intensity by model, not the official %.
+
+Optional nudge (opt-in): a `UserPromptSubmit` hook that suggests `/model opus` on hard prompts — it never
+switches the model and never blocks.
+```bash
+node ~/.claude/skills/context-economy/scripts/install.cjs --model-advisor   # enable
+# CE_MODEL_ADVISOR=off  to silence  ·  install.cjs --no-model-advisor  to remove
+```
+
 ## Dashboard (open it, this is where the decisions are)
 After installing, open **`dashboard/index.html`** in a browser (local file, F5 to refresh). Built from your own
-logs, it shows: where your tokens go (history vs work), whether long sessions cost more, and **which installed
-skills cost the most per session** (estimated, ranked).
+logs, it shows: spend per day (with a **cost × volume** tab), **consumption by model per week** (Opus vs Sonnet —
+where to cut), the detected plan, and **which installed skills cost the most per session** (estimated, ranked).
 
 **To turn skills on/off with buttons** (not just read the chart), run the local server and open the URL it prints:
 ```bash
@@ -59,7 +75,8 @@ Per-skill costs are estimates (chars÷4), good for ranking, not exact numbers.
 - `scripts/toggle-skill.cjs`: CLI on/off for skills.
 - `scripts/list-bloat.cjs`: static per-session overhead of installed skills and MCP.
 - `scripts/context-profile.cjs`: where your conversation tokens actually go (images / PDFs / logs / file reads / web) and your biggest controllable leak. Also auto-summarized in one line on `/clear`.
-- `scripts/install.cjs`: installs the two SessionStart hooks.
+- `scripts/model-advisor.cjs`: optional `UserPromptSubmit` nudge → suggests `/model opus` on hard prompts (opt-in).
+- `scripts/install.cjs`: installs the two SessionStart hooks (`--model-advisor` adds the opt-in nudge).
 
 ## Notes
 - Tested on Windows. The scripts are plain Node (`.cjs`) with relative paths, so they should work on macOS and
