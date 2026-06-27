@@ -58,11 +58,14 @@ line** showing **avg/turn** (cost per turn — the efficiency the bars don't alr
 **model decision** (Opus % + what to shift to Sonnet), the detected plan, and **which installed skills cost the
 most per session** (estimated, ranked).
 
-**To turn skills on/off with buttons** (not just read the chart), run the local server and open the URL it prints:
-```bash
-node ~/.claude/skills/context-economy/scripts/dashboard-serve.cjs
-# → http://127.0.0.1:3847/
-```
+**The Enable/Disable skill buttons need the local server** (they move folders via an API). Opening
+`index.html` as a plain file leaves them dead — you'll see *"Servidor offline"*. The easy way:
+
+- **Windows:** double-click **`dashboard.cmd`** in the skill folder. It starts the server and opens the
+  dashboard in your browser at `http://127.0.0.1:3847` — the mode where the buttons work. Keep the window open.
+- **Any OS:** `node ~/.claude/skills/context-economy/scripts/dashboard-serve.cjs` (it now opens the browser for
+  you; add `--no-open` to suppress). Then use `http://127.0.0.1:3847/`, not the `file://` page.
+
 Each skill has an Enable/Disable button (moves the folder to `~/.claude/skills.disabled/`). Restart Claude Code
 after toggling. CLI equivalent: `node scripts/toggle-skill.cjs off <skill>`.
 
@@ -73,7 +76,8 @@ Per-skill costs are estimates (chars÷4), good for ranking, not exact numbers.
 - `scripts/precheck.cjs`: safety and scope check before writing (is it the right moment?).
 - `scripts/usage.cjs`: history-vs-work breakdown (the `/clear` hook).
 - `scripts/dashboard.cjs` + `dashboard/index.html`: daily dashboard (file-mode, F5).
-- `scripts/dashboard-serve.cjs`: same dashboard + skill toggle API (`http://127.0.0.1:3847/`).
+- `scripts/dashboard-serve.cjs`: same dashboard + skill toggle API (`http://127.0.0.1:3847/`); opens your browser on start.
+- `dashboard.cmd`: Windows double-click launcher for the server (so the skill on/off buttons work).
 - `scripts/toggle-skill.cjs`: CLI on/off for skills.
 - `scripts/list-bloat.cjs`: static per-session overhead of installed skills and MCP.
 - `scripts/context-profile.cjs`: where your conversation tokens actually go (images / PDFs / logs / file reads / web) and your biggest controllable leak. Also auto-summarized in one line on `/clear`.

@@ -310,6 +310,10 @@ function build(D){
       + '1) Ctrl+C in the old server terminal · 2) <code>node scripts/dashboard-serve.cjs</code> · 3) Ctrl+Shift+R here.</div>'
     : '';
 
+  const fileBanner = (location.protocol === 'file:')
+    ? '<div class="stalebanner">⚠️ <b>Aberto como arquivo</b> — os gráficos funcionam, mas os <b>botões de ligar/desligar skill</b> precisam do servidor. Dê <b>duplo-clique em <code>dashboard.cmd</code></b> (na pasta da skill): ele abre o dashboard certo em <b>http://127.0.0.1:3847</b> com os botões funcionando.</div>'
+    : '';
+
   const ratioReal = s.ratio ? s.ratio+'×' : 'n/a';
   const histPct = avgBilled(days)>0 ? Math.round(100*avgCache(days)/avgBilled(days)) : 0;
 
@@ -320,7 +324,7 @@ function build(D){
   const c3 = card('','average spend/day', fmt(avgBilled(days))+'/day','ref','REFERENCE',
     'Average per day across the whole period — a weighted-token proxy for the trend, not an exact cost.', false,'dim');
 
-  $('root').innerHTML = staleBanner
+  $('root').innerHTML = fileBanner + staleBanner
     + comboPanel(days, D.models)
     + '<div class="grid">'+hero+c2+c3+'</div>'
     + skillCostPanel(D.bloat, D.project);
@@ -573,7 +577,7 @@ async function switchProject(dir){
 async function toggleSkill(folder, enable, btn){
   if(toggleBusy) return;
   if(!apiLive){
-    toast('Server offline — run: node scripts/dashboard-serve.cjs', false);
+    toast('Servidor offline — dê duplo-clique em dashboard.cmd e acesse http://127.0.0.1:3847', false);
     return;
   }
   toggleBusy = true;

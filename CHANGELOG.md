@@ -8,6 +8,7 @@ Decision-focused dashboard + model-choice lever.
 - **Plan auto-detection:** reads only `subscriptionType` + `rateLimitTier` from `~/.claude/.credentials.json` (never tokens) → Pro / Max 5× / Max 20×, shown as a badge.
 - **Model-advisor nudge (opt-in):** a `UserPromptSubmit` hook that suggests `/model opus` on high-judgment prompts. It never switches the model and never blocks. Enable with `install.cjs --model-advisor`; silence with `CE_MODEL_ADVISOR=off`. Pairs with a Sonnet default (a user choice the installer never makes for you).
 - **Honest framing kept:** the dashboard shows per-model intensity, not the official plan %; the real % lives in claude.ai → Settings → Usage.
+- **Skill on/off buttons fixed:** they need the local server, but opening `index.html` as a `file://` page left them dead ("Servidor offline"). Now the server **opens your browser** on start (`--no-open` to suppress), there's a Windows **`dashboard.cmd`** double-click launcher, and a banner tells you what to do if you opened the file directly.
 
 ## v1.0.0 (2026-06-24)
 

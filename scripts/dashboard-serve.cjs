@@ -7,7 +7,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, exec } = require('child_process');
 const { skillDir } = require('./lib/paths.cjs');
 const { toggleSkill, canToggleSkill } = require('./lib/skill-toggle.cjs');
 const { translateText } = require('./lib/translate.cjs');
@@ -89,6 +89,17 @@ function serveStatic(req, res) {
     res.writeHead(200, headers);
     res.end(data);
   });
+}
+
+// Opens the dashboard in the default browser so the skill toggle buttons have a server to talk to
+// (opening index.html as a file:// page leaves them dead — "Server offline"). Disable with --no-open.
+function openBrowser(url) {
+  if (process.argv.includes('--no-open') || process.env.CONTEXT_ECONOMY_NO_OPEN) return;
+  const p = process.platform;
+  const cmd = p === 'win32' ? 'start "" "' + url + '"'
+            : p === 'darwin' ? 'open "' + url + '"'
+            : 'xdg-open "' + url + '"';
+  try { exec(cmd); } catch { /* opening is best-effort */ }
 }
 
 const server = http.createServer(async (req, res) => {
@@ -204,4 +215,5 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('Ctrl+C to stop. If the port is taken by an old version, kill the old PID first.');
   if (pd) console.log('Project analyzed: ' + pd);
   try { refreshData(); } catch { /* data.js optional at boot */ }
+  openBrowser('http://127.0.0.1:' + PORT + '/');
 });
