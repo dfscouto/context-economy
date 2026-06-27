@@ -90,7 +90,7 @@ Weekly (or when limits bite): `node <skill-dir>/scripts/dashboard.cjs` → refre
 ### P0 — user levers (biggest $/token wins)
 1. **Model choice — Sonnet by default, Opus on demand** — the heaviest lever when Opus dominates billed (the
    weekly cap is usually Opus). Set `"model": "claude-sonnet-4-6"` in `settings.json`; `/model opus` only for
-   high-judgment work (architecture, hard debugging, planning). The dashboard's **per-model weekly view** shows
+   high-judgment work (architecture, hard debugging, planning). The dashboard's **per-model daily chart** shows
    where Opus goes; the real plan % is at **claude.ai → Settings → Usage**. Optional nudge:
    `install.cjs --model-advisor` suggests escalating on hard prompts (never switches the model; `CE_MODEL_ADVISOR=off` to silence).
 2. **`/clear` on topic switch** — after commit + fresh handoff (gate below). Stops unbounded history growth.
