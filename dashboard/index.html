@@ -201,9 +201,6 @@ let apiStale = false;
 let apiVersion = null;
 let toggleBusy = false;
 let verdictFilter = 'all';
-let chartMetric = 'total'; // (legacy) kept for compatibility; combo chart uses chartLine
-let chartView = 'bars';    // (legacy)
-let chartLine = 'volume';  // combo overlay line: 'volume' = msgs/day · 'avgturn' = billed÷msgs
 let lastProjectKey = null;
 let tipEl = null;
 let tipRow = null;
@@ -325,7 +322,7 @@ function build(D){
 
   $('root').innerHTML = staleBanner
     + comboPanel(days)
-    + modelPanel(D.models, D.weeks)
+    + modelPanel(D.models)
     + '<div class="grid">'+hero+c2+c3+'</div>'
     + skillCostPanel(D.bloat, D.project);
   wireSkillTips();
@@ -431,8 +428,7 @@ function comboPanel(days){
   if(!days || !days.length) return '';
   const W=920,H=360,Pl=66,Pr=58,Pt=18,Pb=46, iw=W-Pl-Pr, ih=H-Pt-Pb;
   const n=days.length, slot=iw/n, bw=Math.max(2,Math.min(slot*0.66,46));
-  const isAvg = chartLine==='avgturn';
-  const lineVal = d => isAvg ? (d.msgs ? d.billed/d.msgs : 0) : d.msgs;
+  const lineVal = d => d.msgs ? d.billed/d.msgs : 0; // avg/turn — the dimension the bars don't already echo
   const maxBilled = Math.max(1, ...days.map(d=>d.billed));
   const maxLine = Math.max(1, ...days.map(lineVal));
   const yL = v => Pt+ih-(v/maxBilled)*ih;
@@ -444,7 +440,7 @@ function comboPanel(days){
       +'<text x="'+(Pl-9)+'" y="'+(yy+4).toFixed(1)+'" fill="var(--chart-axis)" font-size="10.5" text-anchor="end">'+fmt(v)+'</text>'; }
   let rticks='';
   for(let t=0;t<=4;t++){ const v=maxLine*t/4, yy=yR(v);
-    rticks+='<text x="'+(W-Pr+8)+'" y="'+(yy+4).toFixed(1)+'" fill="#2C6FB0" font-size="10" text-anchor="start">'+(isAvg?fmt(v):Math.round(v))+'</text>'; }
+    rticks+='<text x="'+(W-Pr+8)+'" y="'+(yy+4).toFixed(1)+'" fill="#2C6FB0" font-size="10" text-anchor="start">'+fmt(v)+'</text>'; }
   const order=['opus','sonnet','haiku','fable','other'];
   let bars='';
   days.forEach((d,i)=>{ const x=cxx(i)-bw/2; let acc=0;
@@ -452,43 +448,31 @@ function comboPanel(days){
       bars+='<rect x="'+x.toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0,y0-y1).toFixed(1)+'" fill="'+MODEL_COLORS[k]+'"/>'; }); });
   const pts=days.map((d,i)=>[cxx(i), yR(lineVal(d))]);
   const path=smooth(pts, Pt, Pt+ih);
-  const dots=pts.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.4" fill="#378ADD"/>').join('');
   let xl=''; const step=Math.max(1,Math.ceil(n/12));
   for(let i=0;i<n;i+=step){ xl+='<text x="'+cxx(i).toFixed(1)+'" y="'+(H-15)+'" fill="var(--chart-axis)" font-size="10" text-anchor="middle">'+escHtml(days[i].date.slice(5))+'</text>'; }
-  const toggle='<div class="mtoggle" id="combo-line">'
-    +'<button type="button" class="mchip'+(!isAvg?' on':'')+'" data-line="volume">Volume (msgs)</button>'
-    +'<button type="button" class="mchip'+(isAvg?' on':'')+'" data-line="avgturn">Avg/turn</button>'
-    +'</div>';
+  const present=['opus','sonnet','haiku','fable','other'].filter(k=>days.some(d=>(d[k]||0)>0));
   const legend='<div class="legend">'
-    +'<span><i style="background:'+MODEL_COLORS.opus+';width:11px;height:11px;border-radius:2px"></i>Opus</span>'
-    +'<span><i style="background:'+MODEL_COLORS.sonnet+';width:11px;height:11px;border-radius:2px"></i>Sonnet</span>'
-    +'<span><i style="background:'+MODEL_COLORS.other+';width:11px;height:11px;border-radius:2px"></i>outros</span>'
-    +'<span><i style="background:#378ADD;width:16px;height:3px"></i>'+(isAvg?'avg/turn (eixo dir.)':'volume msgs (eixo dir.)')+'</span>'
+    +present.map(k=>'<span><i style="background:'+MODEL_COLORS[k]+';width:11px;height:11px;border-radius:2px"></i>'+modelTitle(k)+'</span>').join('')
+    +'<span><i style="background:#378ADD;width:16px;height:3px"></i>avg/turn (eixo dir.)</span>'
     +'</div>';
   const meta=JSON.stringify({n,slot,pl:Pl,pt:Pt,iw,ih});
-  const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,opus:d.opus||0,line:lineVal(d)})));
-  return '<div class="panel chart-panel" id="spend-chart" data-chart="'+escAttr(meta)+'" data-days="'+escAttr(dd)+'" data-avg="'+(isAvg?1:0)+'">'
-    +'<div class="cap">custo/dia por modelo + '+(isAvg?'avg/turn':'volume')+' — os 3 num gráfico · barra alta + linha baixa = caro por turno</div>'
-    +toggle
+  const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,opus:d.opus||0,avg:lineVal(d)})));
+  return '<div class="panel chart-panel" id="spend-chart" data-chart="'+escAttr(meta)+'" data-days="'+escAttr(dd)+'">'
+    +'<div class="cap">custo/dia por modelo (barras) + custo por turno (linha azul) · onde está o Opus e quão caro cada turno</div>'
     +'<svg viewBox="0 0 '+W+' '+H+'" width="100%">'
     + ticks + rticks + bars
-    +'<path d="'+path+'" fill="none" stroke="#378ADD" stroke-width="2"/>'+dots
+    +'<path d="'+path+'" fill="none" stroke="#378ADD" stroke-width="2"/>'
     +'<rect class="chart-plot-hit" x="'+Pl+'" y="'+Pt+'" width="'+iw+'" height="'+ih+'" fill="transparent"/>'
     +'<line class="chart-cross" x1="'+Pl+'" y1="'+Pt+'" x2="'+Pl+'" y2="'+(Pt+ih)+'" opacity="0"/>'
     + xl
     +'</svg>'+legend+'</div>';
 }
 function wireCombo(){
-  const box=document.getElementById('combo-line');
-  if(box) box.querySelectorAll('.mchip').forEach(chip=>chip.addEventListener('click',()=>{
-    const v=chip.dataset.line; if(v && v!==chartLine){ chartLine=v; build(window.USAGE_DATA); }
-  }));
   const wrap=document.getElementById('spend-chart'); if(!wrap) return;
   const hit=wrap.querySelector('.chart-plot-hit'), svg=wrap.querySelector('svg'), cross=wrap.querySelector('.chart-cross');
   if(!hit||!svg) return;
   let meta,days; try{ meta=JSON.parse(wrap.dataset.chart||'{}'); days=JSON.parse(wrap.dataset.days||'[]'); }catch{ return; }
   if(!days.length) return;
-  const isAvg=wrap.dataset.avg==='1';
   const tip=ensureChartTip();
   function hide(){ tip.classList.remove('show'); cross.setAttribute('opacity','0'); }
   hit.addEventListener('mousemove', e=>{
@@ -497,8 +481,7 @@ function wireCombo(){
     const relX=sp.x-meta.pl; if(relX<0||relX>meta.iw){ hide(); return; }
     let idx=Math.floor(relX/meta.slot); idx=Math.max(0,Math.min(days.length-1,idx));
     const d=days[idx], opusPct=d.billed?Math.round(100*d.opus/d.billed):0;
-    const lineTxt=isAvg ? (fmt(d.line)+' /turno') : (d.msgs+' msgs');
-    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok · Opus '+opusPct+'%<br><span>'+lineTxt+'</span>';
+    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok · Opus '+opusPct+'%<br><span>'+fmt(d.avg)+'/turno · '+d.msgs+' msgs</span>';
     const lx=meta.pl+meta.slot*(idx+0.5); cross.setAttribute('x1',lx); cross.setAttribute('x2',lx); cross.setAttribute('opacity','1');
     tip.classList.add('show');
     let left=e.clientX+14, top=e.clientY-8; tip.style.left=left+'px'; tip.style.top=top+'px';
@@ -509,41 +492,17 @@ function wireCombo(){
   });
   hit.addEventListener('mouseleave', hide);
 }
-function weeklyStacked(weeks){
-  if(!weeks || !weeks.length) return '<div class="estnote">sem dados semanais ainda</div>';
-  const order=['opus','sonnet','haiku','fable','other'];
-  const W=920,H=240,Pl=64,Pr=20,Pt=14,Pb=42,iw=W-Pl-Pr,ih=H-Pt-Pb;
-  const maxT=Math.max(1,...weeks.map(w=>w.total));
-  const n=weeks.length, slot=iw/n, bw=Math.min(slot*0.62,54);
-  const ys=v=>Pt+ih-(v/maxT)*ih;
-  let ticks='';
-  for(let t=0;t<=4;t++){const v=maxT*t/4,yy=ys(v);ticks+='<line x1="'+Pl+'" y1="'+yy.toFixed(1)+'" x2="'+(W-Pr)+'" y2="'+yy.toFixed(1)+'" stroke="var(--chart-grid)"/><text x="'+(Pl-9)+'" y="'+(yy+4).toFixed(1)+'" fill="var(--chart-axis)" font-size="10.5" text-anchor="end">'+fmt(v)+'</text>';}
-  let bars='';
-  weeks.forEach((w,i)=>{
-    const cx=Pl+slot*(i+0.5), x=cx-bw/2; let acc=0;
-    order.forEach(k=>{const v=w[k]||0; if(v<=0) return; const y0=ys(acc),y1=ys(acc+v); acc+=v;
-      bars+='<rect x="'+x.toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0,y0-y1).toFixed(1)+'" fill="'+MODEL_COLORS[k]+'"><title>'+modelTitle(k)+' · '+fmt(v)+'</title></rect>';});
-    bars+='<text x="'+cx.toFixed(1)+'" y="'+(H-16)+'" fill="var(--chart-axis)" font-size="10" text-anchor="middle">'+escHtml(w.week.slice(5))+'</text>';
-  });
-  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%">'+ticks+bars+'</svg>';
-}
-function modelPanel(models, weeks){
+function modelPanel(models){
   if(!models || !models.families || !models.families.length) return '';
   const fam={}; models.families.forEach(f=>fam[f.name]=f);
   const opus=fam.opus||{pct:0,billed:0}, sonnet=fam.sonnet||{pct:0,billed:0};
-  const splitBar='<div style="display:flex;height:14px;border-radius:99px;overflow:hidden;margin:8px 0">'
-    +models.families.map(f=>'<div title="'+escAttr(modelTitle(f.name)+' '+f.pct+'%')+'" style="width:'+Math.max(0,f.pct)+'%;background:'+(MODEL_COLORS[f.name]||'#B4B2A9')+'"></div>').join('')+'</div>';
-  const legend='<div class="legend">'+models.families.map(f=>'<span><i style="background:'+(MODEL_COLORS[f.name]||'#B4B2A9')+'"></i>'+escHtml(modelTitle(f.name))+' <b>'+f.pct+'%</b> · '+fmt(f.billed)+'</span>').join('')+'</div>';
   const decide = opus.pct>=40
     ? '🔴 É o <b>Opus</b> ('+opus.pct+'% do teu billed) que enche teu teto <b>semanal</b>. O Sonnet hoje é só '+sonnet.pct+'% — mover o trabalho rotineiro pro Sonnet é a alavanca pra caber no Pro.'
     : '🟢 Teu gasto não está concentrado no Opus ('+opus.pct+'%) — bom sinal pro teto semanal.';
-  return '<div class="panel"><div class="cap">consumo por modelo — onde decidir Opus × Sonnet (teu gargalo é o teto semanal, não a janela de 5h)</div>'
-    +'<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opus.pct>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0">Opus '+opus.pct+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do teu billed</span></div>'
-    +splitBar+legend
-    +'<div class="cap" style="letter-spacing:.1em;margin-top:16px">por semana · Opus embaixo (coral)</div>'
-    +weeklyStacked(weeks)
-    +'<div class="estnote" style="margin-top:8px">'+decide+'</div>'
-    +'<div class="estnote" style="margin-top:6px;color:var(--dim)">O <b>%-de-plano real</b> (sessão 5h + semanal) vive em <b>Settings → Usage</b> no claude.ai — aqui é <b>intensidade por modelo</b> (billed, inclui cache) pra decidir <em>onde cortar</em>. O reset semanal exato varia por conta.</div>'
+  return '<div class="panel"><div class="cap">decisão de modelo — teu gargalo é o teto semanal de todos os modelos</div>'
+    +'<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opus.pct>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 10px">Opus '+opus.pct+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do teu billed</span></div>'
+    +'<div class="estnote" style="margin-top:0">'+decide+'</div>'
+    +'<div class="estnote" style="margin-top:6px;color:var(--dim)">O <b>%-de-plano real</b> (sessão 5h + semanal) vive em <b>Settings → Usage</b> no claude.ai — aqui é <b>intensidade por modelo</b> (billed, inclui cache). O reset semanal exato varia por conta.</div>'
     +'</div>';
 }
 
