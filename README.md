@@ -53,8 +53,9 @@ node ~/.claude/skills/context-economy/scripts/install.cjs --model-advisor   # en
 
 ## Dashboard (open it, this is where the decisions are)
 After installing, open **`dashboard/index.html`** in a browser (local file, F5 to refresh). Built from your own
-logs, it shows: spend per day (with a **cost × volume** tab), **consumption by model per week** (Opus vs Sonnet —
-where to cut), the detected plan, and **which installed skills cost the most per session** (estimated, ranked).
+logs, it shows a single **combined chart** — cost/day **stacked by model** (Opus vs Sonnet) with an **overlay
+line** that toggles volume ↔ avg/turn (the cost×volume relation) — plus the **per-model weekly trend**, the
+detected plan, and **which installed skills cost the most per session** (estimated, ranked).
 
 **To turn skills on/off with buttons** (not just read the chart), run the local server and open the URL it prints:
 ```bash

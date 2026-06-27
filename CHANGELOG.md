@@ -4,8 +4,7 @@
 
 Decision-focused dashboard + model-choice lever.
 
-- **Per-model weekly view:** the dashboard now splits billed by model (Opus / Sonnet / Haiku / Fable) per week — so you can see the real bottleneck (usually the weekly Opus cap) and decide where to cut.
-- **Cost × volume tab:** a scatter (cost/day × messages/day) showing efficiency — working more without cost rising as fast.
+- **Consolidated chart:** one combo panel — cost/day **stacked by model** (Opus / Sonnet / Haiku / Fable) with an **overlay line** that toggles **volume ↔ avg/turn** (the cost×volume relation) — plus the **per-model weekly trend** below. Answers the weekly "all models" cap at a glance: how much you spent, how much of it is Opus, and the efficiency. (Replaces the earlier separate bars / cost×volume tabs.)
 - **Plan auto-detection:** reads only `subscriptionType` + `rateLimitTier` from `~/.claude/.credentials.json` (never tokens) → Pro / Max 5× / Max 20×, shown as a badge.
 - **Model-advisor nudge (opt-in):** a `UserPromptSubmit` hook that suggests `/model opus` on high-judgment prompts. It never switches the model and never blocks. Enable with `install.cjs --model-advisor`; silence with `CE_MODEL_ADVISOR=off`. Pairs with a Sonnet default (a user choice the installer never makes for you).
 - **Honest framing kept:** the dashboard shows per-model intensity, not the official plan %; the real % lives in claude.ai → Settings → Usage.
