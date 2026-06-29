@@ -53,7 +53,6 @@ node ~/.claude/skills/context-economy/scripts/install.cjs --model-advisor   # en
 **Windows:** double-click **`dashboard.cmd`** in the skill folder. It starts the local server and opens
 your browser automatically at `http://127.0.0.1:3847`. Keep the window open while you use the dashboard.
 
-**Any OS:**
 ```bash
 --UNIX
 node ~/.claude/skills/context-economy/scripts/dashboard-serve.cjs
