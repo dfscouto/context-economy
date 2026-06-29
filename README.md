@@ -57,6 +57,7 @@ your browser automatically at `http://127.0.0.1:3847`. Keep the window open whil
 ```bash
 --UNIX
 node ~/.claude/skills/context-economy/scripts/dashboard-serve.cjs
+# then open http://127.0.0.1:3847/
 
 --WINDOWS
 node "$HOME\.claude\skills\context-economy\scripts\dashboard-serve.cjs"
