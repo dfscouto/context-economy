@@ -443,7 +443,8 @@ function comboPanel(days, models){
   const maxBilled = Math.max(1, ...days.map(d=>d.billed));
   const maxLine = Math.max(1, ...days.map(lineVal));
   const yL = v => Pt+ih-(v/maxBilled)*ih;
-  const yR = v => Pt+ih-(v/maxLine)*ih;
+  const LINE_FRAC = 0.65; // cap line visual height so it reads below bars at their peak (dual-axis secondary)
+  const yR = v => Pt+ih-(Math.min(v,maxLine)/maxLine)*ih*LINE_FRAC;
   const cxx = i => Pl+slot*(i+0.5);
   let ticks='';
   for(let t=0;t<=4;t++){ const v=maxBilled*t/4, yy=yL(v);
@@ -458,7 +459,7 @@ function comboPanel(days, models){
     order.forEach(k=>{ const v=d[k]||0; if(v<=0) return; const y0=yL(acc),y1=yL(acc+v); acc+=v;
       bars+='<rect x="'+x.toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0,y0-y1).toFixed(1)+'" fill="'+MODEL_COLORS[k]+'"/>'; }); });
   const pts=days.map((d,i)=>[cxx(i), yR(lineVal(d))]);
-  const path=smooth(pts, Pt, Pt+ih);
+  const path=smooth(pts, Pt+ih*(1-LINE_FRAC), Pt+ih);
   let xl=''; const step=Math.max(1,Math.ceil(n/12));
   for(let i=0;i<n;i+=step){ xl+='<text x="'+cxx(i).toFixed(1)+'" y="'+(H-15)+'" fill="var(--chart-axis)" font-size="10" text-anchor="middle">'+escHtml(days[i].date.slice(5))+'</text>'; }
   const present=['opus','sonnet','haiku','fable','other'].filter(k=>days.some(d=>(d[k]||0)>0));
@@ -467,7 +468,7 @@ function comboPanel(days, models){
     +'<span><i style="background:#378ADD;width:16px;height:3px"></i>avg/turn (eixo dir.)</span>'
     +'</div>';
   const meta=JSON.stringify({n,slot,pl:Pl,pt:Pt,iw,ih});
-  const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,opus:d.opus||0,avg:lineVal(d)})));
+  const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,opus:d.opus||0,sonnet:d.sonnet||0,haiku:d.haiku||0,fable:d.fable||0,avg:lineVal(d)})));
   const head = days.length
     ? '<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opusPct14>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 8px">Opus '+opusPct14+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do billed (últimos 14 dias) — o que enche teu teto semanal</span></div>'
       +'<div class="estnote" style="margin:0 0 12px">'+decide+'</div>'
@@ -498,8 +499,10 @@ function wireCombo(){
     const sp=pt.matrixTransform(svg.getScreenCTM().inverse());
     const relX=sp.x-meta.pl; if(relX<0||relX>meta.iw){ hide(); return; }
     let idx=Math.floor(relX/meta.slot); idx=Math.max(0,Math.min(days.length-1,idx));
-    const d=days[idx], opusPct=d.billed?Math.round(100*d.opus/d.billed):0;
-    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok · Opus '+opusPct+'%<br><span>'+fmt(d.avg)+'/turno · '+d.msgs+' msgs</span>';
+    const d=days[idx];
+    const MODEL_LABELS={opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable:'Fable'};
+    const modelParts=['opus','sonnet','haiku','fable'].filter(k=>d[k]>0).map(k=>MODEL_LABELS[k]+' '+Math.round(100*d[k]/(d.billed||1))+'%');
+    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok'+(modelParts.length?' · '+modelParts.join(' · '):'')+'<br><span>'+fmt(d.avg)+'/turno · '+d.msgs+' msgs</span>';
     const lx=meta.pl+meta.slot*(idx+0.5); cross.setAttribute('x1',lx); cross.setAttribute('x2',lx); cross.setAttribute('opacity','1');
     tip.classList.add('show');
     let left=e.clientX+14, top=e.clientY-8; tip.style.left=left+'px'; tip.style.top=top+'px';
