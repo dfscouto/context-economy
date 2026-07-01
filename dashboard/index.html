@@ -429,11 +429,14 @@ function modelTitle(n){ return ({opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable
 // --- the consolidated chart: stacked-by-model bars (cost/day) + an overlay line (volume or avg/turn) ---
 function comboPanel(days, models){
   if(!days || !days.length) return '';
-  const fam={}; (models&&models.families||[]).forEach(f=>fam[f.name]=f);
-  const opus=fam.opus||{pct:0}, sonnet=fam.sonnet||{pct:0};
-  const decide = opus.pct>=40
-    ? '🔴 É o <b>Opus</b> ('+opus.pct+'% do teu billed) que enche teu teto <b>semanal</b>. O Sonnet hoje é só '+sonnet.pct+'% — mover o trabalho rotineiro pro Sonnet é a alavanca pra caber no Pro.'
-    : '🟢 Teu gasto não está concentrado no Opus ('+opus.pct+'%) — bom sinal pro teto semanal.';
+  // Use últimos 14 dias para o headline — reflete o comportamento RECENTE, não o histórico total
+  const win14 = days.slice(-14);
+  const tot14 = win14.reduce((s,d)=>s+d.billed,0)||1;
+  const opusPct14 = Math.round(win14.reduce((s,d)=>s+(d.opus||0),0)/tot14*100);
+  const sonnetPct14 = Math.round(win14.reduce((s,d)=>s+(d.sonnet||0),0)/tot14*100);
+  const decide = opusPct14>=40
+    ? '🔴 É o <b>Opus</b> ('+opusPct14+'% do teu billed nos últimos 14 dias) que enche teu teto <b>semanal</b>. Sonnet está em '+sonnetPct14+'% — mover o trabalho rotineiro pro Sonnet é a alavanca pra caber no Pro.'
+    : '🟢 Opus em <b>'+opusPct14+'%</b> nos últimos 14 dias — teu gasto não está concentrado nele. Bom sinal pro teto semanal.';
   const W=920,H=360,Pl=66,Pr=58,Pt=18,Pb=46, iw=W-Pl-Pr, ih=H-Pt-Pb;
   const n=days.length, slot=iw/n, bw=Math.max(2,Math.min(slot*0.66,46));
   const lineVal = d => d.msgs ? d.billed/d.msgs : 0; // avg/turn — the dimension the bars don't already echo
@@ -465,8 +468,8 @@ function comboPanel(days, models){
     +'</div>';
   const meta=JSON.stringify({n,slot,pl:Pl,pt:Pt,iw,ih});
   const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,opus:d.opus||0,avg:lineVal(d)})));
-  const head = (models&&models.families&&models.families.length)
-    ? '<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opus.pct>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 8px">Opus '+opus.pct+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do teu billed — o que enche teu teto semanal</span></div>'
+  const head = days.length
+    ? '<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opusPct14>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 8px">Opus '+opusPct14+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do billed (últimos 14 dias) — o que enche teu teto semanal</span></div>'
       +'<div class="estnote" style="margin:0 0 12px">'+decide+'</div>'
     : '';
   return '<div class="panel chart-panel" id="spend-chart" data-chart="'+escAttr(meta)+'" data-days="'+escAttr(dd)+'">'
