@@ -468,10 +468,15 @@ function comboPanel(days, models){
     +'<span><i style="background:#378ADD;width:16px;height:3px"></i>avg/turn (eixo dir.)</span>'
     +'</div>';
   const meta=JSON.stringify({n,slot,pl:Pl,pt:Pt,iw,ih});
-  const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,opus:d.opus||0,sonnet:d.sonnet||0,haiku:d.haiku||0,fable:d.fable||0,avg:lineVal(d)})));
+  const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,screenshots:d.screenshots||0,opus:d.opus||0,sonnet:d.sonnet||0,haiku:d.haiku||0,fable:d.fable||0,avg:lineVal(d)})));
+  const shots14 = win14.reduce((s,d)=>s+(d.screenshots||0),0);
+  const shotNote = shots14 > 0
+    ? '📸 <b>'+shots14+' screenshots</b> nos últimos 14 dias — cada um adiciona ~500k–2m tok ao contexto e é re-lido a cada turno. Prefira <code>preview_snapshot</code> para verificar texto/estrutura.'
+    : '';
   const head = days.length
     ? '<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opusPct14>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 8px">Opus '+opusPct14+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do billed (últimos 14 dias) — o que enche teu teto semanal</span></div>'
       +'<div class="estnote" style="margin:0 0 12px">'+decide+'</div>'
+      +(shotNote ? '<div class="estnote" style="margin:0 0 12px;border-left:3px solid var(--amber);padding-left:10px">'+shotNote+'</div>' : '')
     : '';
   return '<div class="panel chart-panel" id="spend-chart" data-chart="'+escAttr(meta)+'" data-days="'+escAttr(dd)+'">'
     +'<div class="cap">consumo por modelo — onde decidir Opus × Sonnet (teu gargalo é o teto semanal, não a janela de 5h)</div>'
@@ -502,7 +507,8 @@ function wireCombo(){
     const d=days[idx];
     const MODEL_LABELS={opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable:'Fable'};
     const modelParts=['opus','sonnet','haiku','fable'].filter(k=>d[k]>0).map(k=>MODEL_LABELS[k]+' '+Math.round(100*d[k]/(d.billed||1))+'%');
-    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok'+(modelParts.length?' · '+modelParts.join(' · '):'')+'<br><span>'+fmt(d.avg)+'/turno · '+d.msgs+' msgs</span>';
+    const shotPart = d.screenshots > 0 ? ' · 📸 '+d.screenshots : '';
+    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok'+(modelParts.length?' · '+modelParts.join(' · '):'')+'<br><span>'+fmt(d.avg)+'/turno · '+d.msgs+' msgs'+shotPart+'</span>';
     const lx=meta.pl+meta.slot*(idx+0.5); cross.setAttribute('x1',lx); cross.setAttribute('x2',lx); cross.setAttribute('opacity','1');
     tip.classList.add('show');
     let left=e.clientX+14, top=e.clientY-8; tip.style.left=left+'px'; tip.style.top=top+'px';

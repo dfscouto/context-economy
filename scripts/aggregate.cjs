@@ -31,6 +31,7 @@ async function ingestFile(full, fb, proj, byDay, agg = {}) {
   const byModel = agg.models || (agg.models = {});
   const byWeekModel = agg.weekModels || (agg.weekModels = {});
   const byDayModel = agg.dayModels || (agg.dayModels = {});
+  const byDayShots = agg.dayShots || (agg.dayShots = {});
   const rl = readline.createInterface({ input: fs.createReadStream(full), crlfDelay: Infinity });
   const s = { msgs: 0, billed: 0, startup: 0 };
 
@@ -38,6 +39,18 @@ async function ingestFile(full, fb, proj, byDay, agg = {}) {
     if (!line.trim()) continue;
     let o;
     try { o = JSON.parse(line); } catch { continue; }
+
+    // Count screenshot tool calls (independent of usage lines)
+    const msg = o.message || o;
+    if ((msg.role || o.type) === 'assistant' && Array.isArray(msg.content)) {
+      const dateShot = (typeof o.timestamp === 'string' ? localDateKey(o.timestamp) : null) || fb;
+      let shots = 0;
+      for (const item of msg.content) {
+        if (item.type === 'tool_use' && /screenshot/i.test(item.name || '')) shots++;
+      }
+      if (shots > 0) byDayShots[dateShot] = (byDayShots[dateShot] || 0) + shots;
+    }
+
     const raw = (o.message && o.message.usage) || o.usage;
     if (!raw) continue;
     const u = {
@@ -106,6 +119,7 @@ async function aggregate() {
   }
 
   const byDayModel = agg.dayModels;
+  const byDayShots = agg.dayShots || {};
   const days = Object.keys(byDay).sort().map(date => {
     const d = byDay[date];
     const m = byDayModel[date] || { opus: 0, sonnet: 0, haiku: 0, fable: 0, other: 0 };
@@ -115,6 +129,7 @@ async function aggregate() {
       cache: Math.round(d.cr * 0.1 + d.cw * 1.25),
       work: d.in + d.out,
       msgs: d.msgs,
+      screenshots: byDayShots[date] || 0,
       opus: Math.round(m.opus),
       sonnet: Math.round(m.sonnet),
       haiku: Math.round(m.haiku),
