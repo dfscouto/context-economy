@@ -27,7 +27,7 @@ function fmt(n) {
 }
 
 async function readSession(filePath) {
-  let turns = 0, billed = 0;
+  let turns = 0, billed = 0, screenshots = 0;
   const rl = readline.createInterface({
     input: fs.createReadStream(filePath),
     crlfDelay: Infinity,
@@ -37,7 +37,14 @@ async function readSession(filePath) {
     let o;
     try { o = JSON.parse(line); } catch { continue; }
     const m = o.message || o;
-    if ((m.role || o.type) === 'assistant') turns++;
+    if ((m.role || o.type) === 'assistant') {
+      turns++;
+      if (Array.isArray(m.content)) {
+        for (const item of m.content) {
+          if (item.type === 'tool_use' && /screenshot/i.test(item.name || '')) screenshots++;
+        }
+      }
+    }
     const u = (o.message && o.message.usage) || o.usage;
     if (u) {
       billed += (u.input_tokens || 0)
@@ -46,7 +53,7 @@ async function readSession(filePath) {
               + (u.cache_read_input_tokens  || 0) * CR;
     }
   }
-  return { turns, billed };
+  return { turns, billed, screenshots };
 }
 
 function findSession(transcriptPath, cwd) {
@@ -65,12 +72,13 @@ function findSession(transcriptPath, cwd) {
   } catch { return null; }
 }
 
-function meterLine(turns, billed) {
+function meterLine(turns, billed, screenshots) {
   const cost = '~' + fmt(billed) + ' billed';
-  if (turns >= 100) return '🔴 ' + turns + ' turns · ' + cost + ' · /clear recomendado (sessão muito longa)';
-  if (turns >= 50)  return '🟠 ' + turns + ' turns · ' + cost + ' · considere /clear ao fechar essa tarefa';
-  if (turns >= 20)  return '🟡 ' + turns + ' turns · ' + cost + ' · sessão aquecendo';
-  return                   '⏱  ' + turns + ' turns · ' + cost;
+  const shots = screenshots > 0 ? ' · 📸 ' + screenshots + ' screenshots' : '';
+  if (turns >= 100) return '🔴 ' + turns + ' turns · ' + cost + shots + ' · /clear recomendado (sessão muito longa)';
+  if (turns >= 50)  return '🟠 ' + turns + ' turns · ' + cost + shots + ' · considere /clear ao fechar essa tarefa';
+  if (turns >= 20)  return '🟡 ' + turns + ' turns · ' + cost + shots + ' · sessão aquecendo';
+  return                   '⏱  ' + turns + ' turns · ' + cost + shots;
 }
 
 let raw = '';
@@ -82,8 +90,8 @@ process.stdin.on('end', async () => {
     try { payload = JSON.parse(raw); } catch {}
     const fp = findSession(payload.transcript_path, payload.cwd);
     if (!fp) return;
-    const { turns, billed } = await readSession(fp);
+    const { turns, billed, screenshots } = await readSession(fp);
     if (turns % 10 !== 0 || turns === 0) return; // show at 10, 20, 30 …
-    process.stdout.write(meterLine(turns, billed) + '\n');
+    process.stdout.write(meterLine(turns, billed, screenshots) + '\n');
   } catch { /* never block Claude on a meter error */ }
 });

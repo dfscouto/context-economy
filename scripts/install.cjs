@@ -105,6 +105,10 @@ function main() {
   settings.hooks.Stop = settings.hooks.Stop || [];
   upsert(settings.hooks.Stop, null, meter); // every response at turn 10, 20, 30… -> session cost line
 
+  const guard = nodeCmd('screenshot-guard.cjs');
+  settings.hooks.PreToolUse = settings.hooks.PreToolUse || [];
+  upsert(settings.hooks.PreToolUse, 'screenshot', guard); // nudge when any screenshot tool is called
+
   const advisor = nodeCmd('model-advisor.cjs');
   if (ADVISOR) {
     settings.hooks.UserPromptSubmit = settings.hooks.UserPromptSubmit || [];
@@ -116,9 +120,10 @@ function main() {
   }
 
   console.log('⚙️  context-economy v3 · install' + (DRY ? ' (dry-run)' : ''));
-  console.log('   hooks: SessionStart(clear)->usage · SessionStart->dashboard · Stop->session-meter');
+  console.log('   hooks: SessionStart(clear)->usage · SessionStart->dashboard · Stop->session-meter · PreToolUse(screenshot)->screenshot-guard');
   console.log('   model-advisor: ' + (ADVISOR ? 'ENABLED (UserPromptSubmit nudge -> /model opus)' : NO_ADVISOR ? 'removed' : 'unchanged (add --model-advisor to enable)'));
   console.log('   session-meter: ON by default · disable for one session: CE_METER=off');
+  console.log('   screenshot-guard: ON by default · disable for one session: CE_GUARD=off');
   if (DRY) { console.log('   (dry-run: nothing written)'); return; }
 
   writeSettingsAtomic(file, settings);

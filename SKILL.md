@@ -123,6 +123,7 @@ Weekly (or when limits bite): `node <skill-dir>/scripts/dashboard.cjs` → refre
 - Pasting 500-line diffs or stack traces inline → **path + line range**
 - Two agents editing the same tree → **scope + precheck SAFETY**
 - Re-reading screenshots/PDFs already loaded → **verify by text (DOM/log/curl); `context-profile.cjs` flags if media is your leak**
+- **Screenshot-heavy profile (>50% context)** → each `preview_screenshot` injects ~500–2000k tok re-read every turn; prefer `preview_snapshot` (DOM text, ~1k tok) for structure/text checks; screenshot only for pixel/layout; never repeat the same frame; the `screenshot-guard` PreToolUse hook nudges Claude automatically
 - Rewriting/reordering CLAUDE.md **mid-session** → **busts the prompt cache → re-pays full context; edit docs between sessions, not mid-flight**
 
 ### Agent checklist before claiming "tokens saved"
