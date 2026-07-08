@@ -101,6 +101,10 @@ function main() {
   upsert(settings.hooks.SessionStart, 'clear', usage);  // /clear -> usage summary + bloat
   upsert(settings.hooks.SessionStart, null, dashboard); // every session -> regenerates data.js
 
+  const meter = nodeCmd('session-meter.cjs');
+  settings.hooks.Stop = settings.hooks.Stop || [];
+  upsert(settings.hooks.Stop, null, meter); // every response at turn 10, 20, 30… -> session cost line
+
   const advisor = nodeCmd('model-advisor.cjs');
   if (ADVISOR) {
     settings.hooks.UserPromptSubmit = settings.hooks.UserPromptSubmit || [];
@@ -112,9 +116,9 @@ function main() {
   }
 
   console.log('⚙️  context-economy v3 · install' + (DRY ? ' (dry-run)' : ''));
-  console.log('   light hooks: SessionStart(clear)->usage · SessionStart->dashboard');
+  console.log('   hooks: SessionStart(clear)->usage · SessionStart->dashboard · Stop->session-meter');
   console.log('   model-advisor: ' + (ADVISOR ? 'ENABLED (UserPromptSubmit nudge -> /model opus)' : NO_ADVISOR ? 'removed' : 'unchanged (add --model-advisor to enable)'));
-  console.log('   removed: Stop/PostToolUse + session-init/handoff/clear-moment/track-tool');
+  console.log('   session-meter: ON by default · disable for one session: CE_METER=off');
   if (DRY) { console.log('   (dry-run: nothing written)'); return; }
 
   writeSettingsAtomic(file, settings);
