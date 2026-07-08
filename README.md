@@ -71,6 +71,9 @@ The dashboard shows:
   buttons (moves the folder to `~/.claude/skills.disabled/`; restart Claude Code after toggling)
 - **Detected plan badge** — Pro / Max 5× / Max 20× (read from local credentials, never sent anywhere)
 
+![Cost by model chart](docs/screenshot.png)
+![Skills bloat panel](docs/screenshot1.png)
+
 > Opening `index.html` directly as a `file://` page disables the Enable/Disable buttons — use the server.
 
 Terminal-only report: `node scripts/dashboard.cjs --report`  
