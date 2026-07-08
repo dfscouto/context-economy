@@ -117,6 +117,8 @@ terrain; the saving comes from the habit.
 | `context-profile.cjs` | Breaks down what's inside your conversations (images, PDFs, etc.) |
 | `toggle-skill.cjs` | CLI on/off for skills |
 | `model-advisor.cjs` | UserPromptSubmit hook — detects high-judgment prompts, suggests Opus |
+| `screenshot-guard.cjs` | PreToolUse hook — nudges when a screenshot tool is called; prefer `preview_snapshot` |
+| `re-read-guard.cjs` | PreToolUse hook — warns on 2nd+ Read of the same file within a session |
 | `precheck.cjs` | Safety check before writing to a project |
 
 ## Notes

@@ -109,6 +109,9 @@ function main() {
   settings.hooks.PreToolUse = settings.hooks.PreToolUse || [];
   upsert(settings.hooks.PreToolUse, 'screenshot', guard); // nudge when any screenshot tool is called
 
+  const reguard = nodeCmd('re-read-guard.cjs');
+  upsert(settings.hooks.PreToolUse, 'Read', reguard); // nudge on 2nd+ read of same file within session
+
   const advisor = nodeCmd('model-advisor.cjs');
   if (ADVISOR) {
     settings.hooks.UserPromptSubmit = settings.hooks.UserPromptSubmit || [];
@@ -120,10 +123,11 @@ function main() {
   }
 
   console.log('⚙️  context-economy v3 · install' + (DRY ? ' (dry-run)' : ''));
-  console.log('   hooks: SessionStart(clear)->usage · SessionStart->dashboard · Stop->session-meter · PreToolUse(screenshot)->screenshot-guard');
+  console.log('   hooks: SessionStart(clear)->usage · SessionStart->dashboard · Stop->session-meter · PreToolUse(screenshot)->screenshot-guard · PreToolUse(Read)->re-read-guard');
   console.log('   model-advisor: ' + (ADVISOR ? 'ENABLED (UserPromptSubmit nudge -> /model opus)' : NO_ADVISOR ? 'removed' : 'unchanged (add --model-advisor to enable)'));
   console.log('   session-meter: ON by default · disable for one session: CE_METER=off');
   console.log('   screenshot-guard: ON by default · disable for one session: CE_GUARD=off');
+  console.log('   re-read-guard:   ON by default · disable for one session: CE_REGUARD=off');
   if (DRY) { console.log('   (dry-run: nothing written)'); return; }
 
   writeSettingsAtomic(file, settings);
