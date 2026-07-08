@@ -124,6 +124,7 @@ Weekly (or when limits bite): `node <skill-dir>/scripts/dashboard.cjs` → refre
 - Two agents editing the same tree → **scope + precheck SAFETY**
 - Re-reading screenshots/PDFs already loaded → **verify by text (DOM/log/curl); `context-profile.cjs` flags if media is your leak**
 - **Screenshot-heavy profile (>50% context)** → each `preview_screenshot` injects ~500–2000k tok re-read every turn; prefer `preview_snapshot` (DOM text, ~1k tok) for structure/text checks; screenshot only for pixel/layout; never repeat the same frame; the `screenshot-guard` PreToolUse hook nudges Claude automatically
+- **Pasting images in chat** → an image pasted by the user enters the conversation history and is re-read every turn, same cost as a screenshot (~500–2000k tok). Alternatives: paste error/log as text, describe what you see, or use `preview_snapshot` to inspect the page. No hook can intercept user-pasted images — educate the user directly when this comes up
 - Rewriting/reordering CLAUDE.md **mid-session** → **busts the prompt cache → re-pays full context; edit docs between sessions, not mid-flight**
 
 ### Agent checklist before claiming "tokens saved"

@@ -27,7 +27,9 @@ process.stdin.on('end', () => {
       + 'Screenshot entra no contexto como imagem pesada (~500–2000k tok, re-lida a cada turno). '
       + 'Prefira preview_snapshot (DOM em texto, ~1k tok) para verificar texto, estrutura ou erros. '
       + 'Use screenshot APENAS quando precisar ver layout visual ou pixel. '
-      + 'Se tirar, não repita — re-use o resultado desta chamada.';
+      + 'Se tirar, não repita — re-use o resultado desta chamada. '
+      + '⚠️ O mesmo vale para imagens coladas pelo usuário no chat: cada imagem colada entra no histórico e é re-lida a cada turno, igual a um screenshot. '
+      + 'Oriente o usuário a preferir texto (colar o erro como texto, descrever o que vê, usar preview_snapshot) em vez de colar prints ou capturas de tela.';
 
     process.stdout.write(JSON.stringify({
       hookSpecificOutput: { additionalContext: note },
