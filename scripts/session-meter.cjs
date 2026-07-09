@@ -75,9 +75,9 @@ function findSession(transcriptPath, cwd) {
 function meterLine(turns, billed, screenshots) {
   const cost = '~' + fmt(billed) + ' billed';
   const shots = screenshots > 0 ? ' · 📸 ' + screenshots + ' screenshots' : '';
-  if (turns >= 100) return '🔴 ' + turns + ' turns · ' + cost + shots + ' · /clear recomendado (sessão muito longa)';
-  if (turns >= 50)  return '🟠 ' + turns + ' turns · ' + cost + shots + ' · considere /clear ao fechar essa tarefa';
-  if (turns >= 20)  return '🟡 ' + turns + ' turns · ' + cost + shots + ' · sessão aquecendo';
+  if (turns >= 100) return '🔴 ' + turns + ' turns · ' + cost + shots + ' · /clear recommended (very long session)';
+  if (turns >= 50)  return '🟠 ' + turns + ' turns · ' + cost + shots + ' · consider /clear when this task is done';
+  if (turns >= 20)  return '🟡 ' + turns + ' turns · ' + cost + shots + ' · session warming up';
   return                   '⏱  ' + turns + ' turns · ' + cost + shots;
 }
 

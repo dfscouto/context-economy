@@ -53,10 +53,10 @@ process.stdin.on('end', () => {
     const rel = filePath.length > 70 ? '…' + filePath.slice(-67) : filePath;
     const note =
       '[context-economy · re-read-guard] '
-      + '`' + rel + '` já foi lido nesta sessão. '
-      + 'Re-ler adiciona o arquivo inteiro ao contexto novamente (re-lido a cada turno). '
-      + 'Se o conteúdo ainda está no contexto, use-o diretamente. '
-      + 'Re-leia APENAS se o arquivo pode ter mudado desde a última leitura (ex: após um Edit de outro agente).';
+      + '`' + rel + '` was already read in this session. '
+      + 'Re-reading adds the full file to context again (re-read every turn). '
+      + 'If the content is still in context, use it directly. '
+      + 'Re-read ONLY if the file may have changed since the last read (e.g. after an Edit by another agent).';
 
     process.stdout.write(JSON.stringify({
       hookSpecificOutput: { additionalContext: note },

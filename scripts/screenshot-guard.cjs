@@ -24,12 +24,12 @@ process.stdin.on('end', () => {
 
     const note =
       '[context-economy · screenshot-guard] '
-      + 'Screenshot entra no contexto como imagem pesada (~500–2000k tok, re-lida a cada turno). '
-      + 'Prefira preview_snapshot (DOM em texto, ~1k tok) para verificar texto, estrutura ou erros. '
-      + 'Use screenshot APENAS quando precisar ver layout visual ou pixel. '
-      + 'Se tirar, não repita — re-use o resultado desta chamada. '
-      + '⚠️ O mesmo vale para imagens coladas pelo usuário no chat: cada imagem colada entra no histórico e é re-lida a cada turno, igual a um screenshot. '
-      + 'Oriente o usuário a preferir texto (colar o erro como texto, descrever o que vê, usar preview_snapshot) em vez de colar prints ou capturas de tela.';
+      + 'A screenshot enters context as a heavy image (~500–2000k tok, re-read every turn). '
+      + 'Prefer preview_snapshot (DOM as text, ~1k tok) to verify text, structure, or errors. '
+      + 'Use screenshot ONLY when you need to see visual layout or pixel-level detail. '
+      + 'If you take one, do not repeat it — re-use the result of this call. '
+      + '⚠️ The same applies to images pasted by the user in chat: each pasted image enters the conversation history and is re-read every turn, same cost as a screenshot. '
+      + 'Guide the user to prefer text (paste errors as text, describe what they see, use preview_snapshot) instead of pasting screenshots.';
 
     process.stdout.write(JSON.stringify({
       hookSpecificOutput: { additionalContext: note },

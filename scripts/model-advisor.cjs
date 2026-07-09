@@ -75,12 +75,12 @@ process.stdin.on('end', () => {
 
     if (!hasSignal && !longAnalytical) return;
 
-    const why = hasSignal ? 'sinais de tarefa de alto julgamento' : 'prompt longo e analítico';
+    const why = hasSignal ? 'high-judgment task signals' : 'long analytical prompt';
     const note =
-      '[context-economy · model-advisor] Detectado: ' + why + '. '
-      + 'Se você NÃO estiver já no Opus, comece a resposta com UMA linha curta: '
-      + '"💡 `model opus` recomendado para esta tarefa (você está no Sonnet por padrão)". '
-      + 'Se já estiver no Opus, ou a tarefa for simples, ignore em silêncio.';
+      '[context-economy · model-advisor] Detected: ' + why + '. '
+      + 'If you are NOT already on Opus, start your response with ONE short line: '
+      + '"💡 `model opus` recommended for this task (you are on Sonnet by default)". '
+      + 'If already on Opus, or the task is actually simple, ignore this silently.';
 
     process.stdout.write(JSON.stringify({
       hookSpecificOutput: { additionalContext: note },
