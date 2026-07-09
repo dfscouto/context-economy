@@ -35,7 +35,7 @@ Then synthesize for the user — lead with their **profile** and the **one fix**
 2. State the real number: "X% of your context is Y — re-read every turn."
 3. Give the single most impactful fix for that profile. Don't list everything — one clear action.
 4. Follow with: static overhead from `list-bloat.cjs` (tok/session + top unused skills/MCPs to cut).
-5. If Opus dominates billed spend: recommend setting Sonnet as default (`"model": "claude-sonnet-4-6"` in `settings.json`) and escalating with `/model opus` only for hard tasks — this is the largest single cost lever.
+5. Recommend setting Sonnet as default (`"model": "claude-sonnet-4-6"` in `settings.json`) and escalating with `/model opus` only for hard tasks — the largest single cost lever. To see actual model split: open the dashboard (`dashboard.sh` / `dashboard.cmd`).
 
 | Profile (exact label) | Fix |
 |---|---|
