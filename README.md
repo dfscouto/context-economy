@@ -50,18 +50,16 @@ node ~/.claude/skills/context-economy/scripts/install.cjs --model-advisor   # en
 
 ## Dashboard
 
-**Windows:** double-click **`dashboard.cmd`** in the skill folder. It starts the local server and opens
-your browser automatically at `http://127.0.0.1:3847`. Keep the window open while you use the dashboard.
-
+**Mac / Linux:** run the launcher once, then double-click it anytime:
 ```bash
---UNIX
-node ~/.claude/skills/context-economy/scripts/dashboard-serve.cjs
-# then open http://127.0.0.1:3847/
-
---WINDOWS
-node "$HOME\.claude\skills\context-economy\scripts\dashboard-serve.cjs"
-# then open http://127.0.0.1:3847/
+chmod +x ~/.claude/skills/context-economy/dashboard.sh
+~/.claude/skills/context-economy/dashboard.sh
 ```
+
+**Windows:** double-click **`dashboard.cmd`** in the skill folder.
+
+Both launchers start the local server and open your browser at `http://127.0.0.1:3847` automatically.
+Keep the window open while you use the dashboard.
 
 The dashboard shows:
 - **Cost/day stacked by model** — see how much of your weekly cap is Opus vs Sonnet vs Haiku
@@ -110,7 +108,8 @@ terrain; the saving comes from the habit.
 |---|---|
 | `install.cjs` | Installs SessionStart hooks; `--model-advisor` adds the prompt nudge |
 | `dashboard-serve.cjs` | Local server + skill toggle API at `http://127.0.0.1:3847/` |
-| `dashboard.cmd` | Windows double-click launcher (starts server + opens browser) |
+| `dashboard.sh` | Mac/Linux launcher (starts server + opens browser) |
+| `dashboard.cmd` | Windows launcher (starts server + opens browser) |
 | `dashboard.cjs` | Generates `dashboard/data.js` from your logs |
 | `usage.cjs` | History-vs-work breakdown (runs on `/clear`) |
 | `list-bloat.cjs` | Ranks installed skills/MCP by static per-session token cost |
@@ -123,8 +122,8 @@ terrain; the saving comes from the habit.
 
 ## Notes
 
-- Tested on Windows. Scripts are plain Node (`.cjs`) with no dependencies — should work on macOS and
-  Linux too, but that's untested.
+- Scripts are plain Node (`.cjs`) with no dependencies — tested on Windows; hooks and CLI scripts work
+  on macOS and Linux too (dashboard launcher: `dashboard.sh`).
 - `npm test` runs the built-in Node test runner (no extra packages needed).
 - Per-skill token costs are estimates (chars ÷ 4) — good for ranking, not exact billing.
 
