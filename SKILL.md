@@ -29,7 +29,19 @@ node <skill-dir>/scripts/usage.cjs          # history vs real work, context prof
 node <skill-dir>/scripts/list-bloat.cjs     # static skill/MCP overhead per session
 node <skill-dir>/scripts/context-profile.cjs  # where conversation tokens go (images/PDFs/reads)
 ```
-Report the diagnosis in 3–4 lines before changing anything.
+Then synthesize for the user — lead with their **profile** and the **one fix** for it:
+1. Name the profile from `context-profile.cjs` output (e.g. "Screenshot-heavy", "Read-heavy", "Log-heavy").
+2. State the real number: "X% of your context is Y — re-read every turn."
+3. Give the single most impactful fix for that profile (see table below). Don't list everything — one clear action.
+4. Follow with: static overhead from `list-bloat.cjs` (tok/session + top unused skills/MCPs to cut).
+
+| Profile | Fix |
+|---|---|
+| **Screenshot-heavy** | Use `preview_snapshot` (DOM text, ~1k tok) instead of `preview_screenshot` (~500k–2M tok) for structure/text checks. Screenshot only when pixel layout matters. |
+| **Read-heavy** | Read with `offset`/`limit` or delegate to a subagent. Never re-read a file already in context. |
+| **Log-heavy** | Pipe only the failing slice (last N lines, grep for ERROR). Never paste full build output. |
+| **PDF/doc-heavy** | Summarize via subagent. Keep the summary in context, not the full doc. |
+| **Subagent-heavy** | Subagents are fine, but cap their output. Ask for "10-line summary + anchors", not full dumps. |
 
 ## 2. CLAUDE.md — lean boot-loader
 Target < 60 lines: current state (dated) + pointers to docs + region map (Grep anchors) + gotchas.
