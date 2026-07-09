@@ -16,6 +16,7 @@ description: >-
 > Full playbook, anti-patterns, /clear gate details → `docs/reference.md`.
 
 `<skill-dir>` = the folder containing this SKILL.md.
+**Hooks** (session-meter, screenshot-guard, re-read-guard) must be installed once: `node <skill-dir>/scripts/install.cjs`. If the user hasn't done this, mention it.
 
 ## 0. Pre-flight — run FIRST
 ```
@@ -30,18 +31,23 @@ node <skill-dir>/scripts/list-bloat.cjs     # static skill/MCP overhead per sess
 node <skill-dir>/scripts/context-profile.cjs  # where conversation tokens go (images/PDFs/reads)
 ```
 Then synthesize for the user — lead with their **profile** and the **one fix** for it:
-1. Name the profile from `context-profile.cjs` output (e.g. "Screenshot-heavy", "Read-heavy", "Log-heavy").
+1. Name the profile from `context-profile.cjs` output (exact label — see table below).
 2. State the real number: "X% of your context is Y — re-read every turn."
-3. Give the single most impactful fix for that profile (see table below). Don't list everything — one clear action.
+3. Give the single most impactful fix for that profile. Don't list everything — one clear action.
 4. Follow with: static overhead from `list-bloat.cjs` (tok/session + top unused skills/MCPs to cut).
+5. If Opus dominates billed spend: recommend setting Sonnet as default (`"model": "claude-sonnet-4-6"` in `settings.json`) and escalating with `/model opus` only for hard tasks — this is the largest single cost lever.
 
-| Profile | Fix |
+| Profile (exact label) | Fix |
 |---|---|
 | **Screenshot-heavy** | Use `preview_snapshot` (DOM text, ~1k tok) instead of `preview_screenshot` (~500k–2M tok) for structure/text checks. Screenshot only when pixel layout matters. |
-| **Read-heavy** | Read with `offset`/`limit` or delegate to a subagent. Never re-read a file already in context. |
+| **File-read-heavy** | Read with `offset`/`limit` or delegate to a subagent. Never re-read a file already in context. |
 | **Log-heavy** | Pipe only the failing slice (last N lines, grep for ERROR). Never paste full build output. |
-| **PDF/doc-heavy** | Summarize via subagent. Keep the summary in context, not the full doc. |
+| **PDF-heavy** | Summarize via subagent. Keep the summary in context, not the full doc. |
 | **Subagent-heavy** | Subagents are fine, but cap their output. Ask for "10-line summary + anchors", not full dumps. |
+| **Search-heavy** | Tighten Grep patterns; use `files_with_matches` / `head_limit` instead of dumping full matching content. |
+| **Web-heavy** | Fetch once, summarize, reference the summary. Avoid re-fetching the same URL. |
+| **MCP-heavy** | Disable MCP servers you don't use (`/mcp` or `list-bloat.cjs`); request compact responses where possible. |
+| **Verbose-replies** | Favour tighter answers; cite `file:line` anchors instead of pasting whole blocks back. |
 
 ## 2. CLAUDE.md — lean boot-loader
 Target < 60 lines: current state (dated) + pointers to docs + region map (Grep anchors) + gotchas.
@@ -68,6 +74,13 @@ Never put volatile state in CLAUDE.md or memory — point to the handoff instead
 - User pasting images in chat → each re-read every turn; ask them to paste text/log instead
 - Re-reading unchanged files → `re-read-guard` hook warns; use context already in window
 - Inventing savings % → cite the CPM ratio from `dashboard.cjs --report`, not a made-up number
+- Rewriting/reordering CLAUDE.md mid-session → busts the prompt cache → re-pays full context; edit docs between sessions, never mid-flight
+- Chasing the ~97% cache % → normal in long sessions; ignore it. Chase tokens/day and CPM instead
+
+## Relay — surface skill overhead once per arc
+After running `list-bloat.cjs`: if overhead is high (~2k+ tok/session) or skills at 0×, tell the user **once** (not every turn):
+> 📦 N never-used skills costing ~X tok/session (A, B, C). Want me to disable them?
+`list-bloat.cjs --off` prints the ready-to-paste disable + restore commands. Said it once and they acted or declined → drop it.
 
 ## /clear gate — show 🟢 only when BOTH are true
 1. **Committed** — `git status` is clean (or work saved)
