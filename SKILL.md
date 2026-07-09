@@ -28,7 +28,7 @@ mastery in **docs, not chat**, and from **turning off skills/MCP you don't use**
 
 ## 0. Pre-flight — safety & scope (FIRST, before writing anything)
 Run `node <skill-dir>/scripts/precheck.cjs <project-dir>`. It returns **two separate scores**: **SAFETY** (a
-"don't-write-now" % → 🟢 seguro · 🟡 confirmar · 🔴 inseguro, from wrong scope / uncommitted changes / recent
+"don't-write-now" % → 🟢 safe · 🟡 confirm · 🔴 unsafe, from wrong scope / uncommitted changes / recent
 edits) and **ROI** (a potential-gain % → from a missing or bloated CLAUDE.md, no handoff). **Show the user both.**
 SAFETY 🔴 → don't write; recommend a session scoped to the project and/or waiting until the repo is quiet. Never
 edit a tree another agent might be editing.

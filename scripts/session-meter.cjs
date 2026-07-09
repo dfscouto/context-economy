@@ -4,9 +4,9 @@
  *
  * After each Claude response prints a compact line:
  *   ⏱ 10 turns · ~120k billed
- *   🟡 20 turns · ~300k billed · sessão aquecendo
- *   🟠 50 turns · ~800k billed · considere /clear ao fechar essa tarefa
- *   🔴 100 turns · ~1.8m billed · /clear recomendado
+ *   🟡 20 turns · ~300k billed · session warming up
+ *   🟠 50 turns · ~800k billed · consider /clear when this task is done
+ *   🔴 100 turns · ~1.8m billed · /clear recommended
  *
  * Shows at turn 10, then every 10 turns — low noise, high signal.
  * Disable for one session: CE_METER=off
