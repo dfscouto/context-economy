@@ -311,7 +311,7 @@ function build(D){
     : '';
 
   const fileBanner = (location.protocol === 'file:')
-    ? '<div class="stalebanner">⚠️ <b>Aberto como arquivo</b> — os gráficos funcionam, mas os <b>botões de ligar/desligar skill</b> precisam do servidor. Dê <b>duplo-clique em <code>dashboard.cmd</code></b> (na pasta da skill): ele abre o dashboard certo em <b>http://127.0.0.1:3847</b> com os botões funcionando.</div>'
+    ? '<div class="stalebanner">⚠️ <b>Opened as a file</b> — charts work, but the <b>Enable/Disable skill buttons</b> require the server. <b>Double-click <code>dashboard.cmd</code></b> (in the skill folder): it starts the server and opens the dashboard at <b>http://127.0.0.1:3847</b> with all buttons working.</div>'
     : '';
 
   const ratioReal = s.ratio ? s.ratio+'×' : 'n/a';
@@ -421,22 +421,22 @@ function formatChartDate(iso){
 // --- detected plan + 5h-window usage (the real unit of the rolling limit) ---
 function planChip(plan){
   if(!plan || !plan.detected) return '';
-  return ' · plano <b>'+escHtml(plan.label||plan.type||'?')+'</b>';
+  return ' · plan <b>'+escHtml(plan.label||plan.type||'?')+'</b>';
 }
 const MODEL_COLORS={opus:'#FF7A66',sonnet:'#0FB5A6',haiku:'#3CB371',fable:'#7C5CD6',other:'#B4B2A9'};
-function modelTitle(n){ return ({opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable:'Fable',other:'outros'})[n] || n; }
+function modelTitle(n){ return ({opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable:'Fable',other:'other'})[n] || n; }
 
 // --- the consolidated chart: stacked-by-model bars (cost/day) + an overlay line (volume or avg/turn) ---
 function comboPanel(days, models){
   if(!days || !days.length) return '';
-  // Use últimos 14 dias para o headline — reflete o comportamento RECENTE, não o histórico total
+  // Use the last 14 days for the headline — reflects RECENT behaviour, not the full history
   const win14 = days.slice(-14);
   const tot14 = win14.reduce((s,d)=>s+d.billed,0)||1;
   const opusPct14 = Math.round(win14.reduce((s,d)=>s+(d.opus||0),0)/tot14*100);
   const sonnetPct14 = Math.round(win14.reduce((s,d)=>s+(d.sonnet||0),0)/tot14*100);
   const decide = opusPct14>=40
-    ? '🔴 É o <b>Opus</b> ('+opusPct14+'% do teu billed nos últimos 14 dias) que enche teu teto <b>semanal</b>. Sonnet está em '+sonnetPct14+'% — mover o trabalho rotineiro pro Sonnet é a alavanca pra caber no Pro.'
-    : '🟢 Opus em <b>'+opusPct14+'%</b> nos últimos 14 dias — teu gasto não está concentrado nele. Bom sinal pro teto semanal.';
+    ? '🔴 <b>Opus</b> is at '+opusPct14+'% of your billed tokens (last 14 days) — it is filling your <b>weekly cap</b>. Sonnet is at '+sonnetPct14+'%. Moving routine work to Sonnet is the lever to stay within your plan.'
+    : '🟢 Opus at <b>'+opusPct14+'%</b> over the last 14 days — your spend is not concentrated on it. Good signal for the weekly cap.';
   const W=920,H=360,Pl=66,Pr=58,Pt=18,Pb=46, iw=W-Pl-Pr, ih=H-Pt-Pb;
   const n=days.length, slot=iw/n, bw=Math.max(2,Math.min(slot*0.66,46));
   const lineVal = d => d.msgs ? d.billed/d.msgs : 0; // avg/turn — the dimension the bars don't already echo
@@ -465,21 +465,21 @@ function comboPanel(days, models){
   const present=['opus','sonnet','haiku','fable','other'].filter(k=>days.some(d=>(d[k]||0)>0));
   const legend='<div class="legend">'
     +present.map(k=>'<span><i style="background:'+MODEL_COLORS[k]+';width:11px;height:11px;border-radius:2px"></i>'+modelTitle(k)+'</span>').join('')
-    +'<span><i style="background:#378ADD;width:16px;height:3px"></i>avg/turn (eixo dir.)</span>'
+    +'<span><i style="background:#378ADD;width:16px;height:3px"></i>avg/turn (right axis)</span>'
     +'</div>';
   const meta=JSON.stringify({n,slot,pl:Pl,pt:Pt,iw,ih});
   const dd=JSON.stringify(days.map(d=>({date:d.date,billed:d.billed,msgs:d.msgs,screenshots:d.screenshots||0,opus:d.opus||0,sonnet:d.sonnet||0,haiku:d.haiku||0,fable:d.fable||0,avg:lineVal(d)})));
   const shots14 = win14.reduce((s,d)=>s+(d.screenshots||0),0);
   const shotNote = shots14 > 0
-    ? '📸 <b>'+shots14+' screenshots</b> nos últimos 14 dias — cada um adiciona ~500k–2m tok ao contexto e é re-lido a cada turno. Prefira <code>preview_snapshot</code> para verificar texto/estrutura.'
+    ? '📸 <b>'+shots14+' screenshots</b> in the last 14 days — each one adds ~500k–2m tok to context and is re-read every turn. Prefer <code>preview_snapshot</code> for text/structure checks.'
     : '';
   const head = days.length
-    ? '<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opusPct14>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 8px">Opus '+opusPct14+'% <span style="font-size:14px;color:var(--dim);font-weight:500">do billed (últimos 14 dias) — o que enche teu teto semanal</span></div>'
+    ? '<div style="font-family:var(--fd);font-size:30px;font-weight:700;color:'+(opusPct14>=40?'#E0533C':'var(--teal-deep)')+';line-height:1;margin:2px 0 8px">Opus '+opusPct14+'% <span style="font-size:14px;color:var(--dim);font-weight:500">of billed tokens (last 14 days) — what fills your weekly cap</span></div>'
       +'<div class="estnote" style="margin:0 0 12px">'+decide+'</div>'
       +(shotNote ? '<div class="estnote" style="margin:0 0 12px;border-left:3px solid var(--amber);padding-left:10px">'+shotNote+'</div>' : '')
     : '';
   return '<div class="panel chart-panel" id="spend-chart" data-chart="'+escAttr(meta)+'" data-days="'+escAttr(dd)+'">'
-    +'<div class="cap">consumo por modelo — onde decidir Opus × Sonnet (teu gargalo é o teto semanal, não a janela de 5h)</div>'
+    +'<div class="cap">spend by model — where to decide Opus × Sonnet (your bottleneck is the weekly cap, not the 5h window)</div>'
     + head
     +'<svg viewBox="0 0 '+W+' '+H+'" width="100%">'
     + ticks + rticks + bars
@@ -488,7 +488,7 @@ function comboPanel(days, models){
     +'<line class="chart-cross" x1="'+Pl+'" y1="'+Pt+'" x2="'+Pl+'" y2="'+(Pt+ih)+'" opacity="0"/>'
     + xl
     +'</svg>'+legend
-    +'<div class="estnote" style="margin-top:8px;color:var(--dim)">O <b>%-de-plano real</b> (sessão 5h + semanal) vive em <b>Settings → Usage</b> no claude.ai — aqui é <b>intensidade por modelo</b> (billed, inclui cache). O reset semanal exato varia por conta.</div>'
+    +'<div class="estnote" style="margin-top:8px;color:var(--dim)">Your <b>real plan %</b> (5h session + weekly) lives in <b>Settings → Usage</b> on claude.ai — this chart shows <b>model intensity</b> (billed tokens, includes cache). Exact weekly reset varies per account.</div>'
     +'</div>';
 }
 function wireCombo(){
@@ -508,7 +508,7 @@ function wireCombo(){
     const MODEL_LABELS={opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable:'Fable'};
     const modelParts=['opus','sonnet','haiku','fable'].filter(k=>d[k]>0).map(k=>MODEL_LABELS[k]+' '+Math.round(100*d[k]/(d.billed||1))+'%');
     const shotPart = d.screenshots > 0 ? ' · 📸 '+d.screenshots : '';
-    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok'+(modelParts.length?' · '+modelParts.join(' · '):'')+'<br><span>'+fmt(d.avg)+'/turno · '+d.msgs+' msgs'+shotPart+'</span>';
+    tip.innerHTML='<b>'+escHtml(formatChartDate(d.date))+'</b><br>'+fmt(d.billed)+' tok'+(modelParts.length?' · '+modelParts.join(' · '):'')+'<br><span>'+fmt(d.avg)+'/turn · '+d.msgs+' msgs'+shotPart+'</span>';
     const lx=meta.pl+meta.slot*(idx+0.5); cross.setAttribute('x1',lx); cross.setAttribute('x2',lx); cross.setAttribute('opacity','1');
     tip.classList.add('show');
     let left=e.clientX+14, top=e.clientY-8; tip.style.left=left+'px'; tip.style.top=top+'px';
@@ -589,7 +589,7 @@ async function switchProject(dir){
 async function toggleSkill(folder, enable, btn){
   if(toggleBusy) return;
   if(!apiLive){
-    toast('Servidor offline — dê duplo-clique em dashboard.cmd e acesse http://127.0.0.1:3847', false);
+    toast('Server offline — double-click dashboard.cmd and open http://127.0.0.1:3847', false);
     return;
   }
   toggleBusy = true;
