@@ -153,6 +153,23 @@ function slimBloat(b, projectCtx, projectUsage) {
     console.log('data.js → ' + OUT);
     console.log('dashboard → ' + path.join(skillDir(), 'dashboard', 'index.html'));
   }
+  // Daily digest at SessionStart: yesterday's real numbers in one line, so the daily
+  // spend is visible every morning without opening the dashboard. Data is already
+  // computed by aggregate() above — this costs nothing extra.
+  if (!BLOAT_ONLY && Array.isArray(data.days) && data.days.length) {
+    try {
+      const now = new Date();
+      const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0')
+        + '-' + String(now.getDate()).padStart(2, '0'); // local date, not UTC
+      const prev = data.days.filter(d => d.date < today).pop(); // most recent full day
+      if (prev && prev.billed > 0) {
+        const opusPct = Math.round((prev.opus || 0) / prev.billed * 100);
+        const shots = prev.screenshots ? ' · 📸 ' + prev.screenshots : '';
+        console.log('📅 ' + prev.date + ': ' + k(prev.billed) + ' tok · Opus ' + opusPct + '%' + shots
+          + ' · ' + prev.msgs + ' msgs');
+      }
+    } catch { /* digest is best-effort */ }
+  }
   // fixed skills/MCP overhead at SessionStart (the "📦 …tok/session" line; came from session-init, removed in v3)
   if (!BLOAT_ONLY) {
     try { process.stdout.write(require('child_process').execSync('node ' + JSON.stringify(path.join(__dirname, 'list-bloat.cjs')) + ' --compact', { encoding: 'utf8' })); } catch {}
