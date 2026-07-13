@@ -18,6 +18,46 @@ const projectDir = args[0] || process.cwd();
 
 const SEV = { high: '🔴', medium: '🟡', low: '⚪' };
 
+// ── redundant-MCP detector ─────────────────────────────────────────────────────
+// Servers in the same functional category overlap: each one pads EVERY session's
+// prompt, but a task only ever drives one of them. ≥2 active in a category →
+// recommend keeping one and disabling the rest (via /mcp for managed connectors).
+const MCP_CATEGORIES = [
+  { label: 'browser/desktop automation', re: /playwright|chrome|browser|puppeteer|selenium|computer.?use|preview/i },
+  { label: 'web search/fetch',           re: /firecrawl|brave|tavily|serp|websearch|fetch/i },
+];
+
+function detectRedundantMcp(servers) {
+  const active = (servers || []).filter(s =>
+    s.status === 'active' || s.status === 'enabled-project' || s.status === 'project-file');
+  const groups = [];
+  for (const cat of MCP_CATEGORIES) {
+    const hits = active.filter(s => cat.re.test(String(s.name || '')));
+    if (hits.length >= 2) {
+      groups.push({
+        label: cat.label,
+        servers: hits.slice().sort((a, b) => (b.estHi || b.estTokens || 0) - (a.estHi || a.estTokens || 0)),
+      });
+    }
+  }
+  return groups;
+}
+
+function printRedundantMcp(groups) {
+  if (!groups.length) return;
+  console.log('── Redundant MCPs (same category loaded ≥2×) ──');
+  for (const g of groups) {
+    const tot = g.servers.reduce((a, s) => a + (s.estHi || s.estTokens || 0), 0);
+    console.log(`   🔁 ${g.label}: ${g.servers.length} servers ≈ up to ${tot.toLocaleString()} tok/session combined`);
+    for (const s of g.servers) {
+      const tok = s.estBasis === 'tools' ? `~${s.estTokens}–${s.estHi} tok` : `~${s.estTokens} tok`;
+      console.log(`      • ${s.name} (${tok})`);
+    }
+    console.log('      → keep ONE, disable the rest: /mcp in Claude Code (managed) or node toggle-mcp.cjs off <name> (local)');
+  }
+  console.log('');
+}
+
 function printHuman(data) {
   const { skills, mcp, recommendations, summary } = data;
 
@@ -54,6 +94,7 @@ function printHuman(data) {
     console.log('   ⚠️ local MCP = only ~/.claude.json + .mcp.json. The managed connectors (claude.ai/');
     console.log('      enterprise) don\'t live in a file — these come from the LOG of the last session (best effort).');
     console.log('');
+    printRedundantMcp(detectRedundantMcp(mcp.servers));
   }
 
   const claude = skills.filter(s => s.env === 'claude-code').sort((a, b) => b.estTokens - a.estTokens);
@@ -149,13 +190,15 @@ function printOff(data) {
   }
   if (activeMcp.length) {
     console.log('');
-    console.log('   active MCP (not a folder — toggle in Claude Code with /mcp):');
+    console.log('   active MCP (managed → /mcp · local → node toggle-mcp.cjs off <name>):');
     for (const s of activeMcp.slice().sort((a, b) => b.estTokens - a.estTokens)) {
       const tc = s.toolCount != null ? `${s.toolCount} tools, ` : '';
       const tok = s.estBasis === 'tools' ? `~${s.estTokens}–${s.estHi} tok` : `~${s.estTokens} tok`;
-      console.log(`     • ${s.name} (${tc}${tok}) → /mcp → disable`);
+      console.log(`     • ${s.name} (${tc}${tok})`);
     }
-    console.log('   (platform-managed connectors don\'t go away via a file — only via /mcp)');
+    console.log('   (platform-managed connectors don\'t live in a file — only /mcp removes them)');
+    console.log('');
+    printRedundantMcp(detectRedundantMcp(mcp.servers));
   }
   console.log('');
 }
