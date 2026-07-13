@@ -2,7 +2,8 @@
 /**
  * context-economy · screenshot-guard — PreToolUse hook.
  *
- * Fires on any tool whose name contains "screenshot" and injects a
+ * Fires on any tool whose name contains "screenshot", and on the computer-family
+ * tools (mcp__*__computer) when tool_input.action is screenshot/zoom. Injects a
  * one-line reminder: prefer preview_snapshot (text DOM, ~1k tok) over
  * preview_screenshot (base64 image, ~500–2000k tok) when the goal is
  * structural/text verification rather than pixel-level inspection.
@@ -20,7 +21,14 @@ process.stdin.on('end', () => {
     let payload = {};
     try { payload = JSON.parse(raw); } catch {}
     const tool = String(payload.tool_name || '');
-    if (!/screenshot/i.test(tool)) return; // safety: only fire on screenshot tools
+    const action = String((payload.tool_input || {}).action || '');
+    // Fire on: (a) tools whose NAME contains "screenshot" (mcp__computer-use__screenshot,
+    // browser_take_screenshot, preview_screenshot…), or (b) the computer-family tools
+    // (mcp__Claude_Browser__computer, mcp__claude-in-chrome__computer) when the screenshot
+    // is the ACTION inside tool_input — the name alone never says "screenshot" there.
+    const isScreenshot = /screenshot/i.test(tool)
+      || (/__computer/i.test(tool) && /^(screenshot|zoom)$/i.test(action));
+    if (!isScreenshot) return; // e.g. computer-tool clicks/typing pass through silently
 
     const note =
       '[context-economy · screenshot-guard] '

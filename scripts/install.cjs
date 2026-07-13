@@ -107,10 +107,23 @@ function main() {
 
   const guard = nodeCmd('screenshot-guard.cjs');
   settings.hooks.PreToolUse = settings.hooks.PreToolUse || [];
-  upsert(settings.hooks.PreToolUse, 'screenshot', guard); // nudge when any screenshot tool is called
+  // v3.1: the old matcher 'screenshot' was EXACT-match (no regex metachars) and matched no real
+  // tool name (mcp__computer-use__screenshot, mcp__Claude_Browser__computer, …) → hook never fired.
+  // Remove the dead block, then register an unanchored regex that covers screenshot tools AND the
+  // computer-family tools (whose screenshot lives in tool_input.action — filtered inside the guard).
+  settings.hooks.PreToolUse = settings.hooks.PreToolUse
+    .map(b => b.matcher === 'screenshot'
+      ? { ...b, hooks: (b.hooks || []).filter(h => !/screenshot-guard/.test(h.command || '')) }
+      : b)
+    .filter(b => (b.hooks || []).length);
+  const GUARD_MATCHER = 'screenshot|__computer';
+  upsert(settings.hooks.PreToolUse, GUARD_MATCHER, guard); // nudge when any screenshot tool is called
 
   const reguard = nodeCmd('re-read-guard.cjs');
   upsert(settings.hooks.PreToolUse, 'Read', reguard); // nudge on 2nd+ read of same file within session
+
+  const bashguard = nodeCmd('bash-guard.cjs');
+  upsert(settings.hooks.PreToolUse, 'Bash|PowerShell', bashguard); // nudge on big-output commands without a cap
 
   const advisor = nodeCmd('model-advisor.cjs');
   if (ADVISOR) {
@@ -123,11 +136,12 @@ function main() {
   }
 
   console.log('⚙️  context-economy v3 · install' + (DRY ? ' (dry-run)' : ''));
-  console.log('   hooks: SessionStart(clear)->usage · SessionStart->dashboard · Stop->session-meter · PreToolUse(screenshot)->screenshot-guard · PreToolUse(Read)->re-read-guard');
+  console.log('   hooks: SessionStart(clear)->usage · SessionStart->dashboard(+daily digest) · Stop->session-meter · PreToolUse(screenshot|__computer)->screenshot-guard · PreToolUse(Read)->re-read-guard · PreToolUse(Bash|PowerShell)->bash-guard');
   console.log('   model-advisor: ' + (ADVISOR ? 'ENABLED (UserPromptSubmit nudge -> /model opus)' : NO_ADVISOR ? 'removed' : 'unchanged (add --model-advisor to enable)'));
   console.log('   session-meter: ON by default · disable for one session: CE_METER=off');
   console.log('   screenshot-guard: ON by default · disable for one session: CE_GUARD=off');
   console.log('   re-read-guard:   ON by default · disable for one session: CE_REGUARD=off');
+  console.log('   bash-guard:      ON by default · disable for one session: CE_BASHGUARD=off');
   if (DRY) { console.log('   (dry-run: nothing written)'); return; }
 
   writeSettingsAtomic(file, settings);

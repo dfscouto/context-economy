@@ -46,7 +46,10 @@ async function ingestFile(full, fb, proj, byDay, agg = {}) {
       const dateShot = (typeof o.timestamp === 'string' ? localDateKey(o.timestamp) : null) || fb;
       let shots = 0;
       for (const item of msg.content) {
-        if (item.type === 'tool_use' && /screenshot/i.test(item.name || '')) shots++;
+        if (item.type !== 'tool_use') continue;
+        const isShot = /screenshot/i.test(item.name || '')
+          || (/__computer/i.test(item.name || '') && /^(screenshot|zoom)$/i.test(String((item.input || {}).action || '')));
+        if (isShot) shots++;
       }
       if (shots > 0) byDayShots[dateShot] = (byDayShots[dateShot] || 0) + shots;
     }
