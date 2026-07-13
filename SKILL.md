@@ -16,7 +16,8 @@ description: >-
 > Full playbook, anti-patterns, /clear gate details → `docs/reference.md`.
 
 `<skill-dir>` = the folder containing this SKILL.md.
-**Hooks** (session-meter, screenshot-guard, re-read-guard) must be installed once: `node <skill-dir>/scripts/install.cjs`. If the user hasn't done this, mention it.
+**Hooks** must be installed once: `node <skill-dir>/scripts/install.cjs`. If the user hasn't done this, mention it.
+Installed: SessionStart→usage(on /clear)+dashboard(+📅 daily digest) · Stop→session-meter · PreToolUse→screenshot-guard, re-read-guard (re-reads + big files), bash-guard (verbose commands). Opt-in `--model-advisor`: up-nudge to Opus on hard prompts + down-nudge to Sonnet when on Opus with a routine prompt.
 
 ## 0. Pre-flight — run FIRST
 ```

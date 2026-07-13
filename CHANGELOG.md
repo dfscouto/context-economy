@@ -1,5 +1,47 @@
 # Changelog
 
+## v1.2.0 (2026-07-12)
+
+Guards that actually fire. A multi-agent audit against real usage data (171 screenshots in 14 days
+WITH the guard "on") found the root cause: hooks that never triggered. All confirmed findings fixed;
+the ones accepted as won't-fix are recorded at the bottom of this entry — the list is closed.
+
+**Fixed (was silently broken):**
+- **screenshot-guard never fired** — the PreToolUse matcher `'screenshot'` is EXACT-match in Claude
+  Code, and no real tool is named that. Now an unanchored regex (`screenshot|__computer`), and the
+  guard also checks `tool_input.action` so computer-family tools (`mcp__*__computer`) are covered.
+  Screenshot COUNTING (aggregate + meter) got the same fix — the old counts were undercounts.
+- **session-meter was invisible** — Stop-hook plain stdout is dropped by most UIs. Now emits
+  `{systemMessage}` (guaranteed visible), and a NEW screenshot forces an early report instead of
+  waiting for the next multiple-of-10 turn.
+- **model-advisor only pushed UP (to Opus)** — the direction that exhausts the Opus-weighted weekly
+  cap. Now it also nudges DOWN: on Opus + routine prompt → suggests `/model sonnet`, at most once per
+  session. Current model comes from the transcript tail (`.model` of the last assistant message).
+- **re-read-guard hardening** — keys state on `session_id` (transcript path as fallback) and
+  case-folds paths on Windows.
+
+**New:**
+- **📅 daily digest** (SessionStart): yesterday's real numbers in one line — billed tokens, Opus %,
+  screenshots, messages. The data was already computed; now it's in your face every morning.
+- **big-file Read nudge** — first Read of a >100 KB file without `offset`/`limit` suggests
+  Grep + slice or a subagent.
+- **bash-guard** — big-output commands (`npm install`, builds, `git log` with no `-n`…) running
+  without a cap (`| tail`, `--quiet`, redirect) get a one-line nudge.
+- **toggle-mcp.cjs** — on/off for LOCAL MCP servers in `~/.claude.json` (atomic write + backup).
+  Managed connectors still need `/mcp` — that's a platform limit, stated honestly.
+- **redundant-MCP detector** (list-bloat) — flags ≥2 active servers in the same category
+  (e.g. 5 browser/desktop-automation MCPs ≈ 18k tok/session combined) and says which lever to pull.
+
+**Won't-fix (closed by decision, not inertia):**
+- Weekly-cap countdown: Anthropic doesn't publish numeric caps; inventing a % would violate the
+  skill's own honesty rule. The official % lives in claude.ai → Settings → Usage.
+- Image-paste detector hook: pasted images aren't reliably visible in hook payloads; the guidance
+  lives in the screenshot-guard note + global CLAUDE.md rule instead.
+- Subagent output-cap hook: already covered as instruction in SKILL.md; a hook would be noise.
+- PreToolUse timing (the nudge lands after the call is decided): structural; mitigated by the
+  standing rule injected at session level. Blocking via `permissionDecision: "ask"` was rejected —
+  it would turn every legitimate screenshot into a permission prompt.
+
 ## v1.1.0 (2026-06-27)
 
 Decision-focused dashboard + model-choice lever.

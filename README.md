@@ -38,12 +38,20 @@ tells you when to `/clear`.
    On Windows: `node "C:\Users\<you>\.claude\skills\context-economy\scripts\install.cjs"`
 3. Restart Claude Code.
 
-This wires two `SessionStart` hooks: a usage breakdown on `/clear`, and a `📦 …tok/session` overhead
-line on each start.
+This wires: two `SessionStart` hooks (usage breakdown on `/clear` + a `📅 yesterday: …` daily digest
+and `📦 …tok/session` overhead line on each start), a `Stop` hook (session meter — turn count, billed
+tokens, screenshots, `/clear` advice, surfaced as a visible system message), and three `PreToolUse`
+guards: **screenshot-guard** (covers screenshot-named tools AND computer-family tools whose `action`
+is a screenshot), **re-read-guard** (2nd+ read of the same file, plus first read of a >100 KB file
+without `offset`/`limit`), and **bash-guard** (big-output commands like `npm install`, builds, or
+`git log` running without a cap).
 
-**Optional — model-advisor nudge:**
+**Optional — model-advisor nudge (both directions):**
 ```bash
 node ~/.claude/skills/context-economy/scripts/install.cjs --model-advisor   # enable
+# up:   hard prompt + not on Opus → suggests /model opus
+# down: routine prompt + on Opus  → suggests /model sonnet, once per session
+#       (the down direction is what protects the Opus-weighted weekly cap)
 # CE_MODEL_ADVISOR=off  to silence for one session
 # install.cjs --no-model-advisor  to remove
 ```
@@ -115,9 +123,11 @@ terrain; the saving comes from the habit.
 | `list-bloat.cjs` | Ranks installed skills/MCP by static per-session token cost |
 | `context-profile.cjs` | Breaks down what's inside your conversations (images, PDFs, etc.) |
 | `toggle-skill.cjs` | CLI on/off for skills |
-| `model-advisor.cjs` | UserPromptSubmit hook — detects high-judgment prompts, suggests Opus |
-| `screenshot-guard.cjs` | PreToolUse hook — nudges when a screenshot tool is called; prefer `preview_snapshot` |
-| `re-read-guard.cjs` | PreToolUse hook — warns on 2nd+ Read of the same file within a session |
+| `toggle-mcp.cjs` | CLI on/off for LOCAL MCP servers (`~/.claude.json`); managed connectors → `/mcp` |
+| `model-advisor.cjs` | UserPromptSubmit hook — suggests Opus for hard prompts, Sonnet when Opus is running routine work |
+| `screenshot-guard.cjs` | PreToolUse hook — nudges on screenshot tools (incl. computer-family `action`); prefer `preview_snapshot` |
+| `re-read-guard.cjs` | PreToolUse hook — warns on 2nd+ Read of the same file, and on big first reads without `offset`/`limit` |
+| `bash-guard.cjs` | PreToolUse hook — warns on big-output commands (`npm install`, builds, `git log`) without a cap |
 | `precheck.cjs` | Safety check before writing to a project |
 
 ## Notes
