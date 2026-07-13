@@ -8,12 +8,15 @@
  *   🟠 50 turns · ~800k billed · consider /clear when this task is done
  *   🔴 100 turns · ~1.8m billed · /clear recommended
  *
- * Shows at turn 10, then every 10 turns — low noise, high signal.
+ * Shows at turn 10, then every 10 turns — plus immediately when a NEW screenshot
+ * lands (heaviest per-event cost). Emitted as {systemMessage} so the UI shows it;
+ * plain stdout on Stop hooks is silently dropped in most setups.
  * Disable for one session: CE_METER=off
  */
 'use strict';
 const fs       = require('fs');
 const path     = require('path');
+const os       = require('os');
 const readline = require('readline');
 const { resolveLogDir } = require('./lib/paths.cjs');
 
@@ -41,7 +44,10 @@ async function readSession(filePath) {
       turns++;
       if (Array.isArray(m.content)) {
         for (const item of m.content) {
-          if (item.type === 'tool_use' && /screenshot/i.test(item.name || '')) screenshots++;
+          if (item.type !== 'tool_use') continue;
+          const isShot = /screenshot/i.test(item.name || '')
+            || (/__computer/i.test(item.name || '') && /^(screenshot|zoom)$/i.test(String((item.input || {}).action || '')));
+          if (isShot) screenshots++;
         }
       }
     }
@@ -91,7 +97,22 @@ process.stdin.on('end', async () => {
     const fp = findSession(payload.transcript_path, payload.cwd);
     if (!fp) return;
     const { turns, billed, screenshots } = await readSession(fp);
-    if (turns % 10 !== 0 || turns === 0) return; // show at 10, 20, 30 …
-    process.stdout.write(meterLine(turns, billed, screenshots) + '\n');
+    if (turns === 0) return;
+
+    // Screenshots are the single heaviest per-event cost (~500k–2M tok each, re-read every
+    // turn), so a NEW screenshot forces an early report instead of waiting for the next
+    // multiple of 10. State: last screenshot count reported, per session, in tmp.
+    const sid = String(payload.session_id || path.basename(fp, '.jsonl')).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const stateFile = path.join(os.tmpdir(), 'ce-meter-' + sid + '.json');
+    let lastShots = 0;
+    try { lastShots = JSON.parse(fs.readFileSync(stateFile, 'utf8')).shots || 0; } catch {}
+    const newShots = screenshots > lastShots;
+
+    if (turns % 10 !== 0 && !newShots) return; // show at 10, 20, 30 … or on a new screenshot
+    try { fs.writeFileSync(stateFile, JSON.stringify({ shots: screenshots })); } catch {}
+
+    // systemMessage is the only Stop-hook field guaranteed to surface in the UI;
+    // plain stdout is dropped silently in most setups.
+    process.stdout.write(JSON.stringify({ systemMessage: meterLine(turns, billed, screenshots) }));
   } catch { /* never block Claude on a meter error */ }
 });
