@@ -194,7 +194,7 @@ function avgCache(days){return days.reduce((a,d)=>a+(d.cache||0),0)/days.length}
 function avgBilled(days){return days.reduce((a,d)=>a+(d.billed||0),0)/days.length}
 
 const API = 'http://127.0.0.1:3847';
-const DASHBOARD_BUILD = '1.1.0'; // keep in sync with package.json version (the API server reports PKG.version)
+const DASHBOARD_BUILD = '1.2.0'; // keep in sync with package.json version (the API server reports PKG.version)
 const API_NEEDS = ['project', 'refresh', 'data'];
 let apiLive = false;
 let apiStale = false;
