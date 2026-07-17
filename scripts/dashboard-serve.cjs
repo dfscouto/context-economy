@@ -208,6 +208,17 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(405); res.end('method not allowed');
 });
 
+server.on('error', (e) => {
+  if (e && e.code === 'EADDRINUSE') {
+    console.log('port ' + PORT + ' already in use — dashboard probably running → http://127.0.0.1:' + PORT + '/');
+    console.log('(old version holding the port? kill that PID and rerun)');
+    openBrowser('http://127.0.0.1:' + PORT + '/');
+    setTimeout(() => process.exit(0), 500); // give the browser-open child time to spawn
+    return;
+  }
+  throw e;
+});
+
 server.listen(PORT, '127.0.0.1', () => {
   console.log('context-economy dashboard v' + PKG.version + ' → http://127.0.0.1:' + PORT + '/');
   console.log('PID ' + process.pid + ' · APIs: ' + API_FEATURES.join(', '));

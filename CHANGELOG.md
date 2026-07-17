@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Dashboard auto-starts with the skill** — SKILL.md now instructs launching `dashboard-serve.cjs`
+  in the background on every skill invocation.
+- **dashboard-serve is idempotent** — on `EADDRINUSE` it prints the URL, opens the browser and
+  exits 0 instead of crashing with an unhandled error.
+
 ## v1.2.0 (2026-07-12)
 
 Guards that actually fire. A multi-agent audit against real usage data (171 screenshots in 14 days

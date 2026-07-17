@@ -25,6 +25,12 @@ node <skill-dir>/scripts/precheck.cjs <project-dir>
 ```
 Returns **SAFETY** (don't-write-now %) and **ROI** (potential gain %). Show both. SAFETY 🔴 → stop, don't write.
 
+**Also start the dashboard** — every time this skill is invoked, launch it in the background (never block on it):
+```
+node <skill-dir>/scripts/dashboard-serve.cjs
+```
+Serves http://127.0.0.1:3847 and auto-opens the OS browser. Idempotent: if port 3847 is already in use it prints the URL and exits 0 — just point the user to it.
+
 ## 1. Audit — measure, don't guess
 ```
 node <skill-dir>/scripts/usage.cjs          # history vs real work, context profile
