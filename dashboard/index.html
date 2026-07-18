@@ -31,6 +31,10 @@
   .sub{font-size:13px;color:var(--feather);margin-top:2px}
   .meta{font-size:12px;color:var(--feather);margin:2px 0 16px}
   .meta b{color:var(--ink);font-weight:600}
+  .refresh-btn{margin-left:auto;flex:none;font-family:var(--fd);font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--teal-deep);background:var(--teal-soft);border:1px solid rgba(15,181,166,.28);border-radius:999px;padding:8px 14px;cursor:pointer;transition:background .15s,transform .05s;white-space:nowrap}
+  .refresh-btn:hover{background:#d6f2ee}
+  .refresh-btn:active{transform:translateY(1px)}
+  .refresh-btn:disabled{opacity:.55;cursor:default}
 
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
   @media(max-width:760px){.grid{grid-template-columns:1fr}}
@@ -166,7 +170,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><span class="mk">📊</span><div><h1>context-economy - Where your <b>spend</b> goes</h1><div class="sub">how much the conversation is costing · context telemetry</div></div></div>
+  <div class="top"><span class="mk">📊</span><div><h1>context-economy - Where your <b>spend</b> goes</h1><div class="sub">how much the conversation is costing · context telemetry</div></div><button id="refreshBtn" class="refresh-btn" onclick="refreshDashboard()" title="Regenera os dados (inclui a atividade de hoje) e recarrega">🔄 Atualizar</button></div>
   <div class="meta" id="meta">reading the data…</div>
   <div id="root"></div>
 </div>
@@ -174,6 +178,18 @@
 <script src="data.js" onerror="window.__noData=1"></script>
 <script>
 const fmt = n => n>=1e9?(n/1e9).toFixed(2)+'b':n>=1e6?(n/1e6).toFixed(1)+'m':n>=1e3?(n/1e3).toFixed(0)+'k':String(n|0);
+// Regenerate data.js server-side (aggregate scan, ~30s) then reload — a plain F5 only re-serves the frozen file.
+async function refreshDashboard(){
+  const b=document.getElementById('refreshBtn'); if(!b) return;
+  if(location.protocol==='file:'){ alert('Abra pelo servidor (node scripts/dashboard-serve.cjs) para o botão funcionar.'); return; }
+  const orig=b.textContent; b.disabled=true; b.textContent='atualizando…';
+  try{
+    const r=await fetch('/api/refresh',{method:'POST'});
+    const j=await r.json();
+    if(!j || !j.ok) throw new Error((j&&j.error)||'refresh falhou');
+    location.reload();
+  }catch(e){ b.disabled=false; b.textContent=orig; alert('Falha ao atualizar: '+e.message); }
+}
 const $=id=>document.getElementById(id);
 const escAttr = s => String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;');
 const escHtml = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
