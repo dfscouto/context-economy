@@ -318,7 +318,7 @@ function build(D){
   const histPct = avgBilled(days)>0 ? Math.round(100*avgCache(days)/avgBilled(days)) : 0;
 
   const hero = card('hero','a long conversation spends more per message', ratioReal, 'meas','MEASURED',
-    'In a long conversation each message costs more than in a short one (it re-reads more history). That is how much you can save by starting a new conversation when you switch tasks.', true);
+    'In a long conversation each message costs more than in a short one (it re-reads more history). That is how much more each message costs — the gain is in starting a new conversation when you <em>switch tasks</em>, not in the middle of one.', true);
   const c2 = card('','how much of the cost is the conversation being re-read', '~'+histPct+'%','meas','MEASURED',
     'Most of the cost is the conversation being re-read on every message — but the <em>cache already discounts ~90% of that</em>, so it is not wasted. The gain is in starting a new conversation when you <em>switch tasks</em>, not in the middle of one.', false,'mint');
   const c3 = card('','average spend/day', fmt(avgBilled(days))+'/day','ref','REFERENCE',
