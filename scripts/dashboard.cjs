@@ -30,18 +30,23 @@ function readExistingData() {
 }
 
 // Claude Code's cleanupPeriodDays deletes transcripts as they age, so a fresh
-// aggregate() loses those days forever. Carry them over from the previous data.js:
-// per date, keep whichever record billed more (old snapshot wins for purged days,
-// the fresh scan wins for days still fully on disk).
-function mergeDayHistory(data) {
+// aggregate() loses those days/weeks forever. Carry them over from the previous
+// data.js: per key, keep whichever record billed more (old snapshot wins for
+// purged periods, the fresh scan wins for periods still fully on disk).
+function mergeHistory(data) {
   const prev = readExistingData();
-  if (!prev || !Array.isArray(prev.days) || !prev.days.length) return;
-  const byDate = new Map((data.days || []).map(d => [d.date, d]));
-  for (const old of prev.days) {
-    const cur = byDate.get(old.date);
-    if (!cur || (old.billed || 0) > (cur.billed || 0)) byDate.set(old.date, old);
-  }
-  data.days = [...byDate.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+  if (!prev) return;
+  const mergeMax = (fresh, old, keyOf, valOf) => {
+    if (!Array.isArray(old) || !old.length) return fresh || [];
+    const byKey = new Map((fresh || []).map(r => [keyOf(r), r]));
+    for (const o of old) {
+      const cur = byKey.get(keyOf(o));
+      if (!cur || (valOf(o) || 0) > (valOf(cur) || 0)) byKey.set(keyOf(o), o);
+    }
+    return [...byKey.values()].sort((a, b) => (keyOf(a) < keyOf(b) ? -1 : 1));
+  };
+  data.days = mergeMax(data.days, prev.days, r => r.date, r => r.billed);
+  data.weeks = mergeMax(data.weeks, prev.weeks, r => r.week, r => r.total);
 }
 
 // slim version of bloat for the dashboard: ESTIMATED cost per skill (chars/4) + MCP (placeholder).
@@ -119,7 +124,7 @@ function slimBloat(b, projectCtx, projectUsage) {
   if (BLOAT_ONLY) data = readExistingData();   // toggle/fast path: keep days+stats, regen only bloat
   if (!data) {
     data = await aggregate();                   // full path (or fallback if data.js is missing)
-    mergeDayHistory(data);
+    mergeHistory(data);
   }
   const scanDir = !isAll && fs.existsSync(rawProject) ? rawProject : process.cwd();
   try { data.bloat = slimBloat(scanBloat(scanDir), projectCtx, projectUsage); } catch { data.bloat = null; }
