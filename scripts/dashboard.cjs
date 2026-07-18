@@ -29,6 +29,21 @@ function readExistingData() {
   } catch { return null; }
 }
 
+// Claude Code's cleanupPeriodDays deletes transcripts as they age, so a fresh
+// aggregate() loses those days forever. Carry them over from the previous data.js:
+// per date, keep whichever record billed more (old snapshot wins for purged days,
+// the fresh scan wins for days still fully on disk).
+function mergeDayHistory(data) {
+  const prev = readExistingData();
+  if (!prev || !Array.isArray(prev.days) || !prev.days.length) return;
+  const byDate = new Map((data.days || []).map(d => [d.date, d]));
+  for (const old of prev.days) {
+    const cur = byDate.get(old.date);
+    if (!cur || (old.billed || 0) > (cur.billed || 0)) byDate.set(old.date, old);
+  }
+  data.days = [...byDate.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
 // slim version of bloat for the dashboard: ESTIMATED cost per skill (chars/4) + MCP (placeholder).
 // It's an estimate, not an exact measurement — the relative ranking is what matters for deciding.
 function slimBloat(b, projectCtx, projectUsage) {
@@ -102,7 +117,10 @@ function slimBloat(b, projectCtx, projectUsage) {
 
   let data = null;
   if (BLOAT_ONLY) data = readExistingData();   // toggle/fast path: keep days+stats, regen only bloat
-  if (!data) data = await aggregate();          // full path (or fallback if data.js is missing)
+  if (!data) {
+    data = await aggregate();                   // full path (or fallback if data.js is missing)
+    mergeDayHistory(data);
+  }
   const scanDir = !isAll && fs.existsSync(rawProject) ? rawProject : process.cwd();
   try { data.bloat = slimBloat(scanBloat(scanDir), projectCtx, projectUsage); } catch { data.bloat = null; }
   data.project = {
