@@ -427,8 +427,22 @@ const MODEL_COLORS={opus:'#FF7A66',sonnet:'#0FB5A6',haiku:'#3CB371',fable:'#7C5C
 function modelTitle(n){ return ({opus:'Opus',sonnet:'Sonnet',haiku:'Haiku',fable:'Fable',other:'other'})[n] || n; }
 
 // --- the consolidated chart: stacked-by-model bars (cost/day) + an overlay line (volume or avg/turn) ---
+// Expand the data-days (only days WITH activity) into a continuous calendar:
+// one slot per day from first to last, zero-filled for days with no usage.
+// Without this, a 20-day gap renders as two adjacent bars — days look "spaced".
+function fillDays(days){
+  if(!days || days.length<2) return days||[];
+  const byDate = new Map(days.map(d=>[d.date,d]));
+  const zero = iso => ({date:iso,billed:0,cache:0,work:0,msgs:0,screenshots:0,opus:0,sonnet:0,haiku:0,fable:0,other:0});
+  const [ys,ms,ds]=days[0].date.split('-').map(Number);
+  const [ye,me,de]=days[days.length-1].date.split('-').map(Number);
+  const out=[]; let cur=Date.UTC(ys,ms-1,ds); const end=Date.UTC(ye,me-1,de);
+  while(cur<=end){ const iso=new Date(cur).toISOString().slice(0,10); out.push(byDate.get(iso)||zero(iso)); cur+=86400000; }
+  return out;
+}
 function comboPanel(days, models){
   if(!days || !days.length) return '';
+  days = fillDays(days);
   // Use the last 14 days for the headline — reflects RECENT behaviour, not the full history
   const win14 = days.slice(-14);
   const tot14 = win14.reduce((s,d)=>s+d.billed,0)||1;
