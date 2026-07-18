@@ -440,7 +440,7 @@ function fillDays(days){
   while(cur<=end){ const iso=new Date(cur).toISOString().slice(0,10); out.push(byDate.get(iso)||zero(iso)); cur+=86400000; }
   return out;
 }
-const CHART_DAYS = 30; // recent window: dense daily view, drops the sparse ancient history
+const CHART_DAYS = 90; // recent window: dense daily view, drops the sparse ancient history
 function comboPanel(days, models){
   if(!days || !days.length) return '';
   days = fillDays(days).slice(-CHART_DAYS); // continuous calendar, last 30 days
@@ -496,7 +496,7 @@ function comboPanel(days, models){
       +(shotNote ? '<div class="estnote" style="margin:0 0 12px;border-left:3px solid var(--amber);padding-left:10px">'+shotNote+'</div>' : '')
     : '';
   return '<div class="panel chart-panel" id="spend-chart" data-chart="'+escAttr(meta)+'" data-days="'+escAttr(dd)+'">'
-    +'<div class="cap">spend by model · last 30 days — where to decide Opus × Sonnet (your bottleneck is the weekly cap, not the 5h window)</div>'
+    +'<div class="cap">spend by model · last 90 days — where to decide Opus × Sonnet (your bottleneck is the weekly cap, not the 5h window)</div>'
     + head
     +'<svg viewBox="0 0 '+W+' '+H+'" width="100%">'
     + ticks + rticks + bars
