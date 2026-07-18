@@ -442,12 +442,14 @@ function comboPanel(days, models){
   const lineVal = d => d.msgs ? d.billed/d.msgs : 0; // avg/turn — the dimension the bars don't already echo
   const maxBilled = Math.max(1, ...days.map(d=>d.billed));
   const maxLine = Math.max(1, ...days.map(lineVal));
-  const yL = v => Pt+ih-(v/maxBilled)*ih;
+  // √ scale on bar heights: one outlier day (100m+) crushes normal days (~5m) to sub-pixel
+  // bars on a linear axis; sqrt keeps every day visible while preserving the ranking.
+  const yL = v => Pt+ih-Math.sqrt(Math.max(0,v)/maxBilled)*ih;
   const LINE_FRAC = 0.65; // cap line visual height so it reads below bars at their peak (dual-axis secondary)
   const yR = v => Pt+ih-(Math.min(v,maxLine)/maxLine)*ih*LINE_FRAC;
   const cxx = i => Pl+slot*(i+0.5);
   let ticks='';
-  for(let t=0;t<=4;t++){ const v=maxBilled*t/4, yy=yL(v);
+  for(let t=0;t<=4;t++){ const v=maxBilled*Math.pow(t/4,2), yy=yL(v); // squared fractions → evenly spaced gridlines under the √ scale
     ticks+='<line x1="'+Pl+'" y1="'+yy.toFixed(1)+'" x2="'+(W-Pr)+'" y2="'+yy.toFixed(1)+'" stroke="var(--chart-grid)"/>'
       +'<text x="'+(Pl-9)+'" y="'+(yy+4).toFixed(1)+'" fill="var(--chart-axis)" font-size="10.5" text-anchor="end">'+fmt(v)+'</text>'; }
   let rticks='';
@@ -488,7 +490,7 @@ function comboPanel(days, models){
     +'<line class="chart-cross" x1="'+Pl+'" y1="'+Pt+'" x2="'+Pl+'" y2="'+(Pt+ih)+'" opacity="0"/>'
     + xl
     +'</svg>'+legend
-    +'<div class="estnote" style="margin-top:8px;color:var(--dim)">Your <b>real plan %</b> (5h session + weekly) lives in <b>Settings → Usage</b> on claude.ai — this chart shows <b>model intensity</b> (billed tokens, includes cache). Exact weekly reset varies per account.</div>'
+    +'<div class="estnote" style="margin-top:8px;color:var(--dim)">Your <b>real plan %</b> (5h session + weekly) lives in <b>Settings → Usage</b> on claude.ai — this chart shows <b>model intensity</b> (billed tokens, includes cache). Bar heights use a <b>√ scale</b> so light days stay visible next to outlier days — hover for exact numbers. Exact weekly reset varies per account.</div>'
     +'</div>';
 }
 function wireCombo(){
