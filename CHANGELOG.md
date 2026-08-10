@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## v1.2.1 (2026-08-10)
+
+- **session-meter now actually tells you when to /clear** (was silently broken). It gated on
+  `turns % 10 === 0`, but `turns` counted every assistant block in the transcript (many per
+  response) and jumped in irregular steps, so it almost never landed on a multiple of 10 — the
+  meter stayed silent through 15k-line, 760k-token sessions. Proven: a real long transcript had
+  `turns % 10 === 7` and emitted nothing. Rewritten to gate on the **live context window**
+  (`input + cache_read + cache_creation` of the last request — the real driver of /clear), firing
+  when it crosses UP into a tier (🟡 ~100k · 🟠 ~140k · 🔴 ~180k), keeps growing +20k while red,
+  or a new screenshot lands. Per-session state prevents re-announcing a flat tier. Keeps the
+  *latest* window (not max) so it reflects a shrink after /compact. Pure `tierOf`/`shouldShow`/
+  `meterLine` exported and unit-tested (40/40 green).
 
 - **Dashboard auto-starts with the skill** — SKILL.md now instructs launching `dashboard-serve.cjs`
   in the background on every skill invocation.

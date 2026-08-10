@@ -272,6 +272,35 @@ test('localDateKey: local midnight rolls over to the new day', () => {
   assert.strictEqual(dates.localDateKey('2026-06-23T03:00:00Z'), '2026-06-23');
 });
 
+const meter = require('../scripts/session-meter.cjs');
+
+test('session-meter tierOf: window drives the tier, not turn count', () => {
+  assert.strictEqual(meter.tierOf(50000), 0);   // quiet
+  assert.strictEqual(meter.tierOf(100000), 1);  // 🟡
+  assert.strictEqual(meter.tierOf(140000), 2);  // 🟠
+  assert.strictEqual(meter.tierOf(190000), 3);  // 🔴
+});
+
+test('session-meter shouldShow: fires crossing UP, silent on flat tier', () => {
+  const fresh = { tier: 0, win: 0, shots: 0 };
+  // 761k window from a fresh session must announce (this was the bug: it stayed silent)
+  assert.strictEqual(meter.shouldShow(3, 761000, 0, fresh), true);
+  // same tier again → no spam
+  assert.strictEqual(meter.shouldShow(3, 761000, 0, { tier: 3, win: 761000, shots: 0 }), false);
+  // tier 0 never announces
+  assert.strictEqual(meter.shouldShow(0, 50000, 0, fresh), false);
+  // keeps growing +20k while red → re-announce
+  assert.strictEqual(meter.shouldShow(3, 785000, 0, { tier: 3, win: 761000, shots: 0 }), true);
+  // new screenshot at warming tier forces a report
+  assert.strictEqual(meter.shouldShow(1, 100000, 1, { tier: 1, win: 100000, shots: 0 }), true);
+});
+
+test('session-meter meterLine: red tier tells you to /clear', () => {
+  assert.match(meter.meterLine(761000, 0, 3), /🔴.*\/clear recommended/);
+  assert.match(meter.meterLine(145000, 2, 2), /🟠.*consider \/clear/);
+  assert.match(meter.meterLine(110000, 0, 1), /🟡.*warming up/);
+});
+
 test('listJsonlFiles: finds jsonl in subagents/', () => {
   const root = tmp('jsonlwalk');
   fs.mkdirSync(path.join(root, 'subagents'), { recursive: true });
