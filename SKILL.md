@@ -95,7 +95,15 @@ After running `list-bloat.cjs`: if overhead is high (~2k+ tok/session) or skills
 
 If either is missing, say so: "almost: **commit missing**". Never suggest `/clear` on a dirty tree.
 
-**Show the 🟢 verdict and resume line only when closing a deliverable** — not mid-task.
+**Show the 🟢 verdict and resume line when closing a deliverable** — not mid-task.
+
+🔴 **Also give the resume block whenever YOU suggest `/clear`, for any reason** — including
+"context is running out" mid-task. That case is the one that bites: the user clears on your advice
+and lands in an empty session with no idea what to type. Suggesting `/clear` without the block is
+worse than not suggesting it at all. (Reported 2026-08-13: *"preciso do comando para executar em
+seguida e vc não está informando"* — after a long session where `/clear` was suggested repeatedly
+on context grounds and the block never came, because this section only asked for it on delivery.)
+
 End your reply with the resume block as the very last thing (copy button):
 
 ```

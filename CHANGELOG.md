@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.2.2 (2026-08-13)
+
+- **The resume block now also comes when Claude suggests `/clear` mid-task.** The `/clear` gate
+  only asked for it "when closing a deliverable", so a long session that suggested `/clear` on
+  context grounds — repeatedly — never produced one. The user cleared on that advice and landed in
+  an empty session with nothing to paste. Reported verbatim: *"preciso do comando para executar em
+  seguida e vc não está informando"*. Suggesting `/clear` without the resume line is worse than not
+  suggesting it at all: the advice is what destroys the context it needed.
+
 ## v1.2.1 (2026-08-10)
 
 - **session-meter now actually tells you when to /clear** (was silently broken). It gated on
